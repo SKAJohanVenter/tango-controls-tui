@@ -51,6 +51,15 @@ impl<'a> GetTreeItems<'a> for Domain {
         }
         items
     }
+    // fn get_items(&self) -> Vec<Vec<String>> {
+    //     let families:Vec<Vec<String>> = Vec::new();
+    //     for family in self.families.values().into_iter() {
+    //         let family_items = family.get_items();
+    //         families.push(family_items);
+    //     }
+    //     families
+    //     // self.families.keys().cloned().collect::<Vec<String>>()
+    // }
 }
 
 impl<'a> GetTreeItems<'a> for TangoDevicesLookup<'a> {
@@ -63,7 +72,64 @@ impl<'a> GetTreeItems<'a> for TangoDevicesLookup<'a> {
     }
 }
 
+impl Family {
+    pub fn get_by_ix(&self, ix: usize) -> Option<Member> {
+        let member_keys: Vec<String> = self.members.keys().cloned().collect();
+        if let Some(member_key) = member_keys.get(ix) {
+            if let Some(member) = self.members.get(member_key) {
+                return Some(member.clone());
+            }
+        }
+        None
+    }
+
+    // pub fn flatten_sections(&self) -> Vec<&str> {
+    //     let flattened = Vec::new();
+    //     for member in self.members.keys().into_iter() {
+    //         flattened.push(member.as_str());
+    //     }
+    //     flattened
+    // }
+}
+
+impl Domain {
+    pub fn get_by_ix(&self, ix: usize) -> Option<Family> {
+        let family_keys: Vec<String> = self.families.keys().cloned().collect();
+        if let Some(family_key) = family_keys.get(ix) {
+            if let Some(family) = self.families.get(family_key) {
+                return Some(family.clone());
+            }
+        }
+        None
+    }
+
+    // pub fn flatten_sections(&self) -> Vec<Vec<&str>> {
+    //     let flattened = Vec::new();
+    //     for family in self.families.values().into_iter() {
+    //         flattened.push(family.flatten_sections());
+    //     }
+    //     flattened
+    // }
+}
+
 impl<'a> TangoDevicesLookup<'a> {
+    // pub fn flatten_sections(&self) -> Vec<Vec<Vec<&str>>> {
+    //     let flattened = Vec::new();
+    //     for domain in self.domains.values().into_iter() {
+    //         flattened.push(domain.flatten_sections());
+    //     }
+    //     flattened
+    // }
+    pub fn get_by_ix(&self, ix: usize) -> Option<Domain> {
+        let domain_keys: Vec<String> = self.domains.keys().cloned().collect();
+        if let Some(domain_key) = domain_keys.get(ix) {
+            if let Some(domain) = self.domains.get(domain_key) {
+                return Some(domain.clone());
+            }
+        }
+        None
+    }
+
     pub fn build() -> Result<TangoDevicesLookup<'a>, Box<dyn Error>> {
         let mut tdl = TangoDevicesLookup::default();
         let devices = TangoDevicesLookup::get_all_tango_devices()?;

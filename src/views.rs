@@ -1,8 +1,11 @@
+use std::ops::Index;
+
 use crate::{app::App, tango_utils::GetTreeItems};
+use log::{info, warn};
 // use tui-tree-widget::
 use crate::stateful_tree::StatefulTree;
 use crate::tango_utils::TangoDevicesLookup;
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use tui::symbols::line::DOUBLE_VERTICAL;
 use tui::{
     backend::Backend,
@@ -12,7 +15,7 @@ use tui::{
     widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, Tabs},
     Frame,
 };
-use tui_tree_widget::Tree;
+use tui_tree_widget::{Tree, TreeState};
 
 // #[derive(Debug)]
 pub enum View<'a> {
@@ -26,6 +29,7 @@ pub enum View<'a> {
 pub struct ViewExplorerHome<'a> {
     id: usize,
     pub stateful_tree: StatefulTree<'a>,
+    pub selected_tango_device: Option<String>,
 }
 
 impl<'a> ViewExplorerHome<'a> {
@@ -34,6 +38,7 @@ impl<'a> ViewExplorerHome<'a> {
             id,
             // stateful_tree, // stateful_tree: StatefulTree::with_items(vec![]), // stateful_tree: StatefulTree::with_items(app.tango_devices_lookup.get_tree_items()),
             stateful_tree: StatefulTree::with_items(tdl.get_tree_items()),
+            selected_tango_device: None,
         }
     }
 
@@ -76,6 +81,8 @@ impl ViewWatchList {
 }
 
 pub trait Draw {
+    fn set_selected_device(&mut self, state: &TreeState) {}
+
     fn draw_header<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {
         let tango_host_text = Paragraph::new(format!("TANGO_HOST: {}", app.tango_host))
             .style(Style::default().fg(Color::LightCyan))
@@ -141,68 +148,7 @@ pub trait Draw {
         f.render_widget(tabs, area);
     }
 
-    fn draw_explorer<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {}
-    // fn draw_explorer<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {
-    //     let current_view = app.get_current_view();
-    //     match current_view {
-    //         View::ExplorerHome(eh) => {}
-    //         _ => {}
-    //     }
-
-    //     let mut stateful_tree = StatefulTree::with_items(app.tango_devices_lookup.get_tree_items());
-
-    //     let items = Tree::new(stateful_tree.items.to_vec())
-    //         .block(
-    //             Block::default()
-    //                 .borders(Borders::ALL)
-    //                 .title(format!("Tree Widget {:?}", stateful_tree.state)),
-    //         )
-    //         .highlight_style(
-    //             Style::default()
-    //                 .fg(Color::Black)
-    //                 .bg(Color::LightGreen)
-    //                 .add_modifier(Modifier::BOLD),
-    //         )
-    //         .highlight_symbol(">> ");
-
-    //     // area.width
-    //     let length_left = area.width / 3;
-    //     let length_right = area.width - length_left;
-    //     let chunks = Layout::default()
-    //         .direction(Direction::Horizontal)
-    //         .margin(0)
-    //         .constraints(
-    //             [
-    //                 Constraint::Length(length_left),
-    //                 Constraint::Length(length_right),
-    //             ]
-    //             .as_ref(),
-    //         )
-    //         .split(area);
-
-    //     let left = Paragraph::new("Left")
-    //         .style(Style::default().fg(Color::LightCyan))
-    //         .alignment(Alignment::Left)
-    //         .block(
-    //             Block::default()
-    //                 .borders(Borders::ALL)
-    //                 .style(Style::default().fg(Color::White))
-    //                 .border_type(BorderType::Plain),
-    //         );
-
-    //     let right = Paragraph::new("Right")
-    //         .style(Style::default().fg(Color::LightCyan))
-    //         .alignment(Alignment::Left)
-    //         .block(
-    //             Block::default()
-    //                 .borders(Borders::ALL)
-    //                 .style(Style::default().fg(Color::White))
-    //                 .border_type(BorderType::Plain),
-    //         );
-    //     // f.render_widget(left, chunks[0]);
-    //     f.render_stateful_widget(items, chunks[0], &mut stateful_tree.state);
-    //     f.render_widget(right, chunks[1]);
-    // }
+    fn draw_explorer<B: Backend>(&self, _f: &mut Frame<B>, _area: Rect, _app: &App) {}
 
     fn draw_watchlist<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
         let length_left = area.width / 3;
@@ -255,7 +201,11 @@ pub trait Draw {
         f.render_widget(footer, area);
     }
 
-    fn handle_event(&self, _key_event: &KeyEvent) -> usize {
+    fn handle_event(
+        &mut self,
+        _key_event: &KeyEvent,
+        tango_devices_lookup: &TangoDevicesLookup,
+    ) -> usize {
         0
     }
 
@@ -290,24 +240,62 @@ pub trait Draw {
 }
 
 impl Draw for ViewExplorerHome<'_> {
-    fn handle_event(&self, key_event: &KeyEvent) -> usize {
+    fn set_selected_device(&mut self, state: &TreeState) {
+        let selected = state.selected();
+        if selected.len() == 3 {
+            self.selected_tango_device = Some(String::from("AA"));
+        } else {
+            self.selected_tango_device = None;
+        }
+    }
+
+    fn handle_event(
+        &mut self,
+        key_event: &KeyEvent,
+        tango_devices_lookup: &TangoDevicesLookup,
+    ) -> usize {
+        match key_event.code {
+            KeyCode::Left => {
+                self.stateful_tree.close();
+            }
+            KeyCode::Right => {
+                self.stateful_tree.open();
+            }
+            KeyCode::Down => {
+                self.stateful_tree.next();
+            }
+            KeyCode::Up => {
+                self.stateful_tree.previous();
+            }
+            _ => {}
+        }
+        let selected = self.stateful_tree.state.selected();
+
+        if selected.len() == 3 {
+            let domain_ix = selected[0];
+            let family_ix = selected[1];
+            let member_ix = selected[2];
+
+            if let Some(domain) = tango_devices_lookup.get_by_ix(domain_ix) {
+                if let Some(family) = domain.get_by_ix(family_ix) {
+                    if let Some(member) = family.get_by_ix(member_ix) {
+                        self.selected_tango_device = Some(member.device_name.clone());
+                    }
+                }
+            }
+        } else {
+            self.selected_tango_device = None;
+        }
+        println!("{:#?}", self.selected_tango_device);
         0
     }
 
     fn draw_explorer<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {
-        // let current_view = app.get_current_view();
-        // match current_view {
-        //     View::ExplorerHome(eh) => {}
-        //     _ => {}
-        // }
-
-        // let mut stateful_tree = StatefulTree::with_items(app.tango_devices_lookup.get_tree_items());
-
         let items = Tree::new(self.stateful_tree.items.to_vec())
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title(format!("Tree Widget {:?}", self.stateful_tree.state)),
+                    .title(format!("{:?}", self.stateful_tree.state)),
             )
             .highlight_style(
                 Style::default()

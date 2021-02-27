@@ -9,7 +9,6 @@ mod stateful_tree;
 mod tango_utils;
 mod views;
 
-use crate::stateful_tree::StatefulTree;
 use app::App;
 use argh::FromArgs;
 use crossterm::{
@@ -17,7 +16,6 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen},
 };
-use std::sync::{Arc, Mutex};
 use std::{
     error::Error,
     io::stdout,
@@ -25,9 +23,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-use tango_utils::{GetTreeItems, TangoDevicesLookup};
 use tui::{backend::CrosstermBackend, Terminal};
-use views::{View, ViewExplorerHome};
 
 enum Event<I> {
     Input(I),

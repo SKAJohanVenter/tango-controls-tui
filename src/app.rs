@@ -1,5 +1,3 @@
-use crate::stateful_tree::StatefulTree;
-// use crate::tango_utils::GetTreeItems;
 use crate::tango_utils::TangoDevicesLookup;
 use crate::views::{
     Draw, View, ViewExplorerAttributes, ViewExplorerCommands, ViewExplorerHome, ViewWatchList,
@@ -63,6 +61,14 @@ impl<'a> App<'a> {
             }
             _ => {}
         }
+
+        let current_view = self.views.get_mut(self.current_view_ix).unwrap();
+        match current_view {
+            View::ExplorerHome(eh) => eh.handle_event(key_event, &self.tango_devices_lookup),
+            View::ExplorerCommands(ec) => ec.handle_event(key_event, &self.tango_devices_lookup),
+            View::ExplorerAttributes(ea) => ea.handle_event(key_event, &self.tango_devices_lookup),
+            View::WatchList(wl) => wl.handle_event(key_event, &self.tango_devices_lookup),
+        };
     }
 
     pub fn draw<B: Backend>(&self, f: &mut Frame<B>) {
