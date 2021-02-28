@@ -1,139 +1,121 @@
-use std::ops::Index;
+pub mod explorer;
+pub mod watchlist;
 
-use crate::{app::App, tango_utils::GetTreeItems};
-use log::{info, warn};
+use explorer::ViewExplorerHome;
+use watchlist::ViewWatchList;
+
 // use tui-tree-widget::
-use crate::stateful_tree::StatefulTree;
+
 use crate::tango_utils::TangoDevicesLookup;
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::KeyEvent;
 use tui::symbols::line::DOUBLE_VERTICAL;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::{Span, Spans},
     widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, Tabs},
     Frame,
 };
-use tui_tree_widget::{Tree, TreeState};
+
+#[derive(Debug, Default)]
+pub struct SharedViewState {
+    pub tango_host: Option<String>,
+    pub current_selected_device: Option<String>,
+}
 
 // #[derive(Debug)]
 pub enum View<'a> {
-    ExplorerHome(ViewExplorerHome<'a>),
-    ExplorerCommands(ViewExplorerCommands),
-    ExplorerAttributes(ViewExplorerAttributes),
+    Explorer(ViewExplorerHome<'a>),
     WatchList(ViewWatchList),
 }
 
 // #[derive(Debug, Default)]
-pub struct ViewExplorerHome<'a> {
-    id: usize,
-    pub stateful_tree: StatefulTree<'a>,
-    pub selected_tango_device: Option<String>,
-}
 
-impl<'a> ViewExplorerHome<'a> {
-    pub fn new(id: usize, tdl: &TangoDevicesLookup<'a>) -> ViewExplorerHome<'a> {
-        ViewExplorerHome {
-            id,
-            // stateful_tree, // stateful_tree: StatefulTree::with_items(vec![]), // stateful_tree: StatefulTree::with_items(app.tango_devices_lookup.get_tree_items()),
-            stateful_tree: StatefulTree::with_items(tdl.get_tree_items()),
-            selected_tango_device: None,
-        }
-    }
-
-    pub fn get_stateful_tree(&self) -> &StatefulTree<'a> {
-        &self.stateful_tree
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct ViewExplorerCommands {
-    id: usize,
-}
-
-impl ViewExplorerCommands {
-    pub fn new(id: usize) -> ViewExplorerCommands {
-        ViewExplorerCommands { id }
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct ViewExplorerAttributes {
-    id: usize,
-}
-
-impl ViewExplorerAttributes {
-    pub fn new(id: usize) -> ViewExplorerAttributes {
-        ViewExplorerAttributes { id }
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct ViewWatchList {
-    id: usize,
-}
-
-impl ViewWatchList {
-    pub fn new(id: usize) -> ViewWatchList {
-        ViewWatchList { id }
-    }
+#[derive(Default, Debug, Clone)]
+pub struct MenuOption {
+    key: String,
+    description: String,
 }
 
 pub trait Draw {
-    fn set_selected_device(&mut self, state: &TreeState) {}
+    fn get_default_menu_items(&self) -> Vec<MenuOption> {
+        vec![
+            MenuOption {
+                key: "q".to_string(),
+                description: "Quit".to_string(),
+            },
+            MenuOption {
+                key: "TAB".to_string(),
+                description: "Toggle Tabs".to_string(),
+            },
+        ]
+    }
 
-    fn draw_header<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {
-        let tango_host_text = Paragraph::new(format!("TANGO_HOST: {}", app.tango_host))
-            .style(Style::default().fg(Color::LightCyan))
-            .alignment(Alignment::Left)
-            .block(Block::default().style(Style::default().fg(Color::White)));
+    fn get_view_menu_items(&self, shared_view_state: &mut SharedViewState) -> Vec<MenuOption> {
+        vec![]
+    }
+
+    fn draw_header<B: Backend>(
+        &self,
+        f: &mut Frame<B>,
+        area: Rect,
+        shared_view_state: &mut SharedViewState,
+    ) {
+        let tango_host_text = Paragraph::new(format!(
+            "TANGO_HOST: {}",
+            shared_view_state
+                .tango_host
+                .as_ref()
+                .unwrap_or(&String::from(""))
+        ))
+        .style(Style::default().fg(Color::LightCyan))
+        .alignment(Alignment::Left)
+        .block(Block::default().style(Style::default().fg(Color::White)));
         f.render_widget(tango_host_text, area);
     }
 
-    fn draw_menu<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
-        let table = Table::new(vec![
-            Row::new(vec![Cell::from("")]),
-            Row::new(vec![
-                Cell::from(Spans::from(vec![
-                    Span::styled("<", Style::default().fg(Color::LightCyan)),
-                    Span::styled("q", Style::default().fg(Color::White)),
-                    Span::styled(">", Style::default().fg(Color::LightCyan)),
-                ])),
-                Cell::from("Quit").style(Style::default().fg(Color::White)),
-            ]),
-            Row::new(vec![
-                Cell::from(Spans::from(vec![
-                    Span::styled("<", Style::default().fg(Color::LightCyan)),
-                    Span::styled("TAB", Style::default().fg(Color::White)),
-                    Span::styled(">", Style::default().fg(Color::LightCyan)),
-                ])),
-                Cell::from("Toggle tabs").style(Style::default().fg(Color::White)),
+    fn draw_menu<B: Backend>(
+        &self,
+        f: &mut Frame<B>,
+        area: Rect,
+        shared_view_state: &mut SharedViewState,
+    ) {
+        let mut menu_items: Vec<MenuOption> = self.get_default_menu_items().clone();
+        menu_items.extend(self.get_view_menu_items(shared_view_state).clone());
+        let mut rows: Vec<Row> = menu_items
+            .into_iter()
+            .map(|menu_option| {
+                Row::new(vec![
+                    Cell::from(Spans::from(vec![
+                        Span::styled("<", Style::default().fg(Color::LightCyan)),
+                        Span::styled(menu_option.key, Style::default().fg(Color::White)),
+                        Span::styled(">", Style::default().fg(Color::LightCyan)),
+                    ])),
+                    Cell::from(menu_option.description).style(Style::default().fg(Color::White)),
+                ])
+            })
+            .collect();
+        rows.insert(0, Row::new(vec![Cell::from("")]));
+
+        let table = Table::new(rows)
+            // You can set the style of the entire Table.
+            .style(Style::default().fg(Color::White))
+            // It has an optional header, which is simply a Row always visible at the top.
+            // As any other widget, a Table can be wrapped in a Block.
+            // Columns widths are constrained in the same way as Layout...
+            .widths(&[
+                Constraint::Length(10),
+                Constraint::Length(15),
+                Constraint::Length(15),
             ])
-            .bottom_margin(1),
-            // If a Row need to display some content over multiple lines, you just have to change
-            // its height.
-        ])
-        // You can set the style of the entire Table.
-        .style(Style::default().fg(Color::White))
-        // It has an optional header, which is simply a Row always visible at the top.
-        // As any other widget, a Table can be wrapped in a Block.
-        // Columns widths are constrained in the same way as Layout...
-        .widths(&[
-            Constraint::Length(5),
-            Constraint::Length(15),
-            Constraint::Length(15),
-        ])
-        // ...and they can be separated by a fixed spacing.
-        .column_spacing(1);
+            // ...and they can be separated by a fixed spacing.
+            .column_spacing(1);
         f.render_widget(table, area);
     }
 
-    fn draw_tabs<B: Backend>(&self, f: &mut Frame<B>, area: Rect, current_view_ix: usize) {
-        let selected_tab = match current_view_ix {
-            3 => 1,
-            _ => 0,
-        };
+    fn draw_tabs<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
+        let selected_tab = 0;
         let tab_titles = ["Explorer", "Watchlist"]
             .iter()
             .cloned()
@@ -148,7 +130,13 @@ pub trait Draw {
         f.render_widget(tabs, area);
     }
 
-    fn draw_explorer<B: Backend>(&self, _f: &mut Frame<B>, _area: Rect, _app: &App) {}
+    fn draw_explorer<B: Backend>(
+        &self,
+        _f: &mut Frame<B>,
+        _area: Rect,
+        _shared_view_state: &mut SharedViewState,
+    ) {
+    }
 
     fn draw_watchlist<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
         let length_left = area.width / 3;
@@ -204,16 +192,22 @@ pub trait Draw {
     fn handle_event(
         &mut self,
         _key_event: &KeyEvent,
-        tango_devices_lookup: &TangoDevicesLookup,
+        _tango_devices_lookup: &TangoDevicesLookup,
+        _shared_view_state: &mut SharedViewState,
     ) -> usize {
         0
     }
 
-    fn draw_body<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {
-        self.draw_explorer(f, area, app);
+    fn draw_body<B: Backend>(
+        &self,
+        f: &mut Frame<B>,
+        area: Rect,
+        shared_view_state: &mut SharedViewState,
+    ) {
+        self.draw_explorer(f, area, shared_view_state);
     }
 
-    fn draw<B: Backend>(&self, f: &mut Frame<B>, app: &App) {
+    fn draw<B: Backend>(&self, f: &mut Frame<B>, shared_view_state: &mut SharedViewState) {
         let size = f.size();
 
         let chunks = Layout::default()
@@ -231,127 +225,11 @@ pub trait Draw {
             )
             .split(size);
 
-        self.draw_header(f, chunks[0], app);
-        self.draw_menu(f, chunks[1]);
-        self.draw_tabs(f, chunks[2], app.current_view_ix);
-        self.draw_body(f, chunks[3], app);
+        self.draw_header(f, chunks[0], shared_view_state);
+        self.draw_menu(f, chunks[1], shared_view_state);
+        self.draw_tabs(f, chunks[2]);
+        self.draw_body(f, chunks[3], shared_view_state);
         self.draw_footer(f, chunks[4]);
-    }
-}
-
-impl Draw for ViewExplorerHome<'_> {
-    fn set_selected_device(&mut self, state: &TreeState) {
-        let selected = state.selected();
-        if selected.len() == 3 {
-            self.selected_tango_device = Some(String::from("AA"));
-        } else {
-            self.selected_tango_device = None;
-        }
-    }
-
-    fn handle_event(
-        &mut self,
-        key_event: &KeyEvent,
-        tango_devices_lookup: &TangoDevicesLookup,
-    ) -> usize {
-        match key_event.code {
-            KeyCode::Left => {
-                self.stateful_tree.close();
-            }
-            KeyCode::Right => {
-                self.stateful_tree.open();
-            }
-            KeyCode::Down => {
-                self.stateful_tree.next();
-            }
-            KeyCode::Up => {
-                self.stateful_tree.previous();
-            }
-            _ => {}
-        }
-        let selected = self.stateful_tree.state.selected();
-
-        if selected.len() == 3 {
-            let domain_ix = selected[0];
-            let family_ix = selected[1];
-            let member_ix = selected[2];
-
-            if let Some(domain) = tango_devices_lookup.get_by_ix(domain_ix) {
-                if let Some(family) = domain.get_by_ix(family_ix) {
-                    if let Some(member) = family.get_by_ix(member_ix) {
-                        self.selected_tango_device = Some(member.device_name.clone());
-                    }
-                }
-            }
-        } else {
-            self.selected_tango_device = None;
-        }
-        println!("{:#?}", self.selected_tango_device);
-        0
-    }
-
-    fn draw_explorer<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {
-        let items = Tree::new(self.stateful_tree.items.to_vec())
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(format!("{:?}", self.stateful_tree.state)),
-            )
-            .highlight_style(
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::LightGreen)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol(">> ");
-
-        // area.width
-        let length_left = area.width / 3;
-        let length_right = area.width - length_left;
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .margin(0)
-            .constraints(
-                [
-                    Constraint::Length(length_left),
-                    Constraint::Length(length_right),
-                ]
-                .as_ref(),
-            )
-            .split(area);
-
-        let left = Paragraph::new("Left")
-            .style(Style::default().fg(Color::LightCyan))
-            .alignment(Alignment::Left)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .style(Style::default().fg(Color::White))
-                    .border_type(BorderType::Plain),
-            );
-
-        let right = Paragraph::new("Right")
-            .style(Style::default().fg(Color::LightCyan))
-            .alignment(Alignment::Left)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .style(Style::default().fg(Color::White))
-                    .border_type(BorderType::Plain),
-            );
-        // f.render_widget(left, chunks[0]);
-        // f.render_stateful_widget(items, chunks[0], &mut self.stateful_tree.state);
-        f.render_stateful_widget(items, chunks[0], &mut self.stateful_tree.state.clone());
-        f.render_widget(right, chunks[1]);
-    }
-}
-
-impl Draw for ViewExplorerCommands {}
-impl Draw for ViewExplorerAttributes {}
-
-impl Draw for ViewWatchList {
-    fn draw_body<B: Backend>(&self, f: &mut Frame<B>, area: Rect, app: &App) {
-        self.draw_watchlist(f, area);
     }
 }
 

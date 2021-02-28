@@ -79,16 +79,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut app = App::new("Tango Controls TUI", cli.enhanced_graphics);
 
-    // Get the tango devices
-    // thread::spawn(move || match TangoDevicesLookup::build() {
-    //     Ok(tdl) => {
-    //         tango_update_tx
-    //             .send(Event::UpdateTangoDeviceList(tdl))
-    //             .unwrap();
-    //     }
-    //     Err(_) => {}
-    // });
-
     terminal.clear()?;
 
     loop {
@@ -109,39 +99,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
             Event::Tick => {
                 app.on_tick();
-            } // Event::UpdateTangoDeviceList(tdl) => {
-              // let a = tdl.get_tree_items();
-              // app.tango_devices_lookup = tdl;
-              // app.tango_devices_lookup = tdl;
-              // app.views[0] = View::ExplorerHome(ViewExplorerHome {
-              //     id: 0,
-              //     stateful_tree: StatefulTree::with_items(a),
-              // });
-              // let a = app.views.get_mut(0).unwrap();
-              // match a {
-              //     View::ExplorerHome(eh) => {
-              //         eh.stateful_tree =
-              //             StatefulTree::with_items(app.tango_devices_lookup.get_tree_items())
-              //     }
-              //     _ => {}
-              // }
-
-              // let mut view = app.views.get_mut(0).unwrap();
-              // match view {
-              //     View::ExplorerHome(eh) => {
-              //         eh.stateful_tree =
-              //             StatefulTree::with_items(app.tango_devices_lookup.get_tree_items());
-              //     }
-              //     _ => {}
-              // }
-              // }
+            }
         }
 
         if app.should_quit {
             terminal.clear()?;
         }
 
-        if app.should_quit || app.tango_host.is_empty() {
+        if app.should_quit || app.shared_view_state.tango_host.is_none() {
             disable_raw_mode()?;
             execute!(std::io::stdout(), DisableMouseCapture)?;
             break;

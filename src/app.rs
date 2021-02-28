@@ -1,7 +1,7 @@
 use crate::tango_utils::TangoDevicesLookup;
-use crate::views::{
-    Draw, View, ViewExplorerAttributes, ViewExplorerCommands, ViewExplorerHome, ViewWatchList,
-};
+use crate::views::explorer::ViewExplorerHome;
+use crate::views::watchlist::ViewWatchList;
+use crate::views::{Draw, SharedViewState, View};
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -15,38 +15,34 @@ pub struct App<'a> {
     pub enhanced_graphics: bool,
     pub current_view_ix: usize,
     pub views: Vec<View<'a>>,
-    pub tango_host: String,
     pub tango_devices_lookup: TangoDevicesLookup<'a>,
+    pub shared_view_state: SharedViewState,
 }
 
 impl<'a> App<'a> {
     pub fn new(title: &'a str, enhanced_graphics: bool) -> App<'a> {
-        let tango_host = match env::var("TANGO_HOST") {
-            Ok(host) => host,
-            Err(_) => "".to_string(),
-        };
         let mut app = App {
             title,
             should_quit: false,
             update_tango_device_list: true,
             enhanced_graphics,
             current_view_ix: 0,
-            views: vec![
-                // View::ExplorerHome(ViewExplorerHome::new(0)),
-                View::ExplorerCommands(ViewExplorerCommands::new(1)),
-                View::ExplorerAttributes(ViewExplorerAttributes::new(2)),
-                View::WatchList(ViewWatchList::new(3)),
-            ],
-            tango_host,
+            views: vec![],
             tango_devices_lookup: TangoDevicesLookup::default(),
-            // tango_devices_lookup: TangoDevicesLookup::default(),
+            shared_view_state: SharedViewState::default(),
+        };
+
+        app.shared_view_state.tango_host = match env::var("TANGO_HOST") {
+            Ok(host) => Some(host),
+            Err(_) => None,
         };
 
         if let Ok(tdl) = TangoDevicesLookup::build() {
             app.views
-                .insert(0, View::ExplorerHome(ViewExplorerHome::new(0, &tdl)));
+                .push(View::Explorer(ViewExplorerHome::new(0, &tdl)));
             app.tango_devices_lookup = tdl;
         }
+        app.views.push(View::WatchList(ViewWatchList::new(1)));
         app
     }
 
@@ -54,7 +50,7 @@ impl<'a> App<'a> {
         match key_event.code {
             KeyCode::Tab => {
                 if self.current_view_ix == 0 {
-                    self.current_view_ix = 3;
+                    self.current_view_ix = 1;
                 } else {
                     self.current_view_ix = 0;
                 }
@@ -64,27 +60,27 @@ impl<'a> App<'a> {
 
         let current_view = self.views.get_mut(self.current_view_ix).unwrap();
         match current_view {
-            View::ExplorerHome(eh) => eh.handle_event(key_event, &self.tango_devices_lookup),
-            View::ExplorerCommands(ec) => ec.handle_event(key_event, &self.tango_devices_lookup),
-            View::ExplorerAttributes(ea) => ea.handle_event(key_event, &self.tango_devices_lookup),
-            View::WatchList(wl) => wl.handle_event(key_event, &self.tango_devices_lookup),
+            View::Explorer(eh) => eh.handle_event(
+                key_event,
+                &self.tango_devices_lookup,
+                &mut self.shared_view_state,
+            ),
+            View::WatchList(wl) => wl.handle_event(
+                key_event,
+                &self.tango_devices_lookup,
+                &mut self.shared_view_state,
+            ),
         };
     }
 
-    pub fn draw<B: Backend>(&self, f: &mut Frame<B>) {
+    pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) {
         let view = self.views.get(self.current_view_ix).unwrap();
         match view {
-            View::ExplorerHome(eh) => {
-                eh.draw(f, self);
-            }
-            View::ExplorerCommands(ec) => {
-                ec.draw(f, self);
-            }
-            View::ExplorerAttributes(ea) => {
-                ea.draw(f, self);
+            View::Explorer(eh) => {
+                eh.draw(f, &mut self.shared_view_state);
             }
             View::WatchList(wl) => {
-                wl.draw(f, self);
+                wl.draw(f, &mut self.shared_view_state);
             }
         }
     }

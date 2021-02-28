@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, error::Error};
-use tango_client::DatabaseProxy;
+use tango_client::{AttributeInfo, CommandInfo, DatabaseProxy, DeviceProxy};
 use tui_tree_widget::TreeItem;
 
 #[derive(Debug, Default, Clone)]
@@ -51,15 +51,6 @@ impl<'a> GetTreeItems<'a> for Domain {
         }
         items
     }
-    // fn get_items(&self) -> Vec<Vec<String>> {
-    //     let families:Vec<Vec<String>> = Vec::new();
-    //     for family in self.families.values().into_iter() {
-    //         let family_items = family.get_items();
-    //         families.push(family_items);
-    //     }
-    //     families
-    //     // self.families.keys().cloned().collect::<Vec<String>>()
-    // }
 }
 
 impl<'a> GetTreeItems<'a> for TangoDevicesLookup<'a> {
@@ -82,14 +73,6 @@ impl Family {
         }
         None
     }
-
-    // pub fn flatten_sections(&self) -> Vec<&str> {
-    //     let flattened = Vec::new();
-    //     for member in self.members.keys().into_iter() {
-    //         flattened.push(member.as_str());
-    //     }
-    //     flattened
-    // }
 }
 
 impl Domain {
@@ -102,24 +85,9 @@ impl Domain {
         }
         None
     }
-
-    // pub fn flatten_sections(&self) -> Vec<Vec<&str>> {
-    //     let flattened = Vec::new();
-    //     for family in self.families.values().into_iter() {
-    //         flattened.push(family.flatten_sections());
-    //     }
-    //     flattened
-    // }
 }
 
 impl<'a> TangoDevicesLookup<'a> {
-    // pub fn flatten_sections(&self) -> Vec<Vec<Vec<&str>>> {
-    //     let flattened = Vec::new();
-    //     for domain in self.domains.values().into_iter() {
-    //         flattened.push(domain.flatten_sections());
-    //     }
-    //     flattened
-    // }
     pub fn get_by_ix(&self, ix: usize) -> Option<Domain> {
         let domain_keys: Vec<String> = self.domains.keys().cloned().collect();
         if let Some(domain_key) = domain_keys.get(ix) {
@@ -193,6 +161,18 @@ impl<'a> TangoDevicesLookup<'a> {
         }
         domains
     }
+}
+
+pub fn get_attribute_list(device_name: &str) -> Result<Vec<AttributeInfo>, Box<dyn Error>> {
+    let dp = DeviceProxy::new(device_name)?;
+    let attributes = dp.attribute_list_query()?;
+    Ok(attributes)
+}
+
+pub fn get_command_list(device_name: &str) -> Result<Vec<CommandInfo>, Box<dyn Error>> {
+    let dp = DeviceProxy::new(device_name)?;
+    let attributes = dp.command_list_query()?;
+    Ok(attributes)
 }
 
 #[test]
