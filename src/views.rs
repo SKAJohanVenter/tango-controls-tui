@@ -1,6 +1,8 @@
 pub mod explorer;
 pub mod watchlist;
 
+use std::collections::BTreeMap;
+
 use explorer::ViewExplorerHome;
 use watchlist::ViewWatchList;
 
@@ -18,10 +20,44 @@ use tui::{
     Frame,
 };
 
+type DeviceName = String;
+type AttributeName = String;
+type AttributeValue = Option<String>;
+
 #[derive(Debug, Default)]
 pub struct SharedViewState {
     pub tango_host: Option<String>,
     pub current_selected_device: Option<String>,
+    pub watch_list: BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeValue>>,
+}
+
+impl SharedViewState {
+    pub fn add_watch_attribute(&mut self, attribute_name: String) {
+        if let Some(current_device) = &self.current_selected_device {
+            // Add the device if not present
+            self.watch_list
+                .entry(current_device.clone())
+                .or_insert(BTreeMap::default());
+            // Add the attribute if not present
+            if let Some(attr_map) = self.watch_list.get_mut(current_device) {
+                attr_map.entry(attribute_name).or_insert(None);
+            }
+        };
+    }
+
+    pub fn remove_watch_attribute(&mut self, attribute_name: String) {
+        if let Some(current_device) = &self.current_selected_device {
+            if let Some(attr_map) = self.watch_list.get_mut(current_device) {
+                attr_map.remove(&attribute_name);
+            }
+
+            if let Some(attr_map) = self.watch_list.get(current_device) {
+                if attr_map.len() == 0 {
+                    self.watch_list.remove(current_device);
+                }
+            }
+        }
+    }
 }
 
 // #[derive(Debug)]

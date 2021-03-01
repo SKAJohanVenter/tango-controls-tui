@@ -1,7 +1,8 @@
-use crate::tango_utils::TangoDevicesLookup;
+use crate::tango_utils::{self, read_attribute, TangoDevicesLookup};
 use crate::views::explorer::ViewExplorerHome;
 use crate::views::watchlist::ViewWatchList;
 use crate::views::{Draw, SharedViewState, View};
+use std::collections::BTreeMap;
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -84,32 +85,24 @@ impl<'a> App<'a> {
             }
         }
     }
-
-    pub fn on_tick(&mut self) {}
+    pub fn on_tick(&mut self) {
+        for (device_name, attr_map) in self.shared_view_state.watch_list.iter_mut() {
+            let attrs: Vec<String> = attr_map.keys().cloned().collect();
+            for attr_name in attrs {
+                let new_value = match tango_utils::read_attribute(device_name, &attr_name) {
+                    Ok(value) => match value.data.into_string() {
+                        Ok(val) => Some(val),
+                        // Looks like err is a valid value
+                        Err(err) => Some(format!("{}", err)),
+                    },
+                    Err(err) => Some(format!("Error: {}", err)),
+                };
+                attr_map.insert(attr_name, new_value);
+            }
+        }
+    }
 
     pub fn get_current_view(&self) -> &View {
         self.views.get(self.current_view_ix).unwrap()
     }
-
-    // pub fn get_current_view(&mut self) -> Box<dyn Draw> {
-    //     let view = self.views.get(self.current_view_ix).unwrap();
-    //     match view {
-    //         View::ExplorerHome(eh) => {
-    //             eh
-    //             // eh.draw(f, self)
-    //         }
-    //         View::ExplorerCommands(ec) => {
-    //             ec
-    //             // ec.draw(f, self)
-    //         }
-    //         View::ExplorerAttributes(ea) => {
-    //             ea
-    //             // ea.draw(f, self)
-    //         }
-    //         View::WatchList(wl) => {
-    //             wl
-    //             // wl.draw(f, self)
-    //         }
-    //     }
-    // }
 }

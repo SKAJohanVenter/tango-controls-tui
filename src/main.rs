@@ -71,7 +71,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             if last_tick.elapsed() >= tick_rate {
-                tx.send(Event::Tick).unwrap();
+                match tx.send(Event::Tick) {
+                    Ok(_) => {}
+                    Err(_) => {}
+                }
                 last_tick = Instant::now();
             }
         }

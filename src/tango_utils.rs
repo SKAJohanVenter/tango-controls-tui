@@ -1,5 +1,5 @@
 use std::{collections::BTreeMap, error::Error};
-use tango_client::{AttributeInfo, CommandInfo, DatabaseProxy, DeviceProxy};
+use tango_client::{AttributeData, AttributeInfo, CommandInfo, DatabaseProxy, DeviceProxy};
 use tui_tree_widget::TreeItem;
 
 #[derive(Debug, Default, Clone)]
@@ -161,6 +161,15 @@ impl<'a> TangoDevicesLookup<'a> {
         }
         domains
     }
+}
+
+pub fn read_attribute(
+    device_name: &str,
+    attribute_name: &str,
+) -> Result<AttributeData, Box<dyn Error>> {
+    let mut dp = DeviceProxy::new(device_name)?;
+    let value = dp.read_attribute(attribute_name)?;
+    Ok(value)
 }
 
 pub fn get_attribute_list(device_name: &str) -> Result<Vec<AttributeInfo>, Box<dyn Error>> {

@@ -9,7 +9,11 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph},
+    text::{Span, Spans},
+    widgets::{
+        Block, BorderType, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table,
+        TableState,
+    },
     Frame,
 };
 use tui_tree_widget::Tree;
@@ -30,19 +34,20 @@ pub struct ViewExplorerHome<'a> {
     id: usize,
     stateful_tree: StatefulTree<'a>,
     focus: Focus,
-    stateful_list_items: Vec<ListItem<'a>>,
-    stateful_list: ListState,
+    stateful_table: TableState,
+    stateful_table_items: Vec<(String, Row<'a>)>,
+    device_display: DeviceDisplay,
 }
 
 impl<'a> ViewExplorerHome<'a> {
     pub fn new(id: usize, tdl: &TangoDevicesLookup<'a>) -> ViewExplorerHome<'a> {
         ViewExplorerHome {
             id,
-            // stateful_tree, // stateful_tree: StatefulTree::with_items(vec![]), // stateful_tree: StatefulTree::with_items(app.tango_devices_lookup.get_tree_items()),
             stateful_tree: StatefulTree::with_items(tdl.get_tree_items()),
             focus: Focus::Left,
-            stateful_list_items: Vec::new(),
-            stateful_list: ListState::default(),
+            stateful_table: TableState::default(),
+            stateful_table_items: Vec::new(),
+            device_display: DeviceDisplay::Empty,
         }
     }
 
@@ -73,18 +78,27 @@ impl<'a> ViewExplorerHome<'a> {
         shared_view_state: &SharedViewState,
         device_display: DeviceDisplay,
     ) {
-        self.stateful_list_items.clear();
+        self.stateful_table_items.clear();
         if device_display == DeviceDisplay::Attributes {
             if let Some(current_device) = shared_view_state.current_selected_device.clone() {
                 match get_attribute_list(current_device.as_str()) {
                     Ok(attributes) => {
                         for attr in attributes {
-                            self.stateful_list_items.push(ListItem::new(attr.name));
+                            self.stateful_table_items.push((
+                                format!("{}", attr.name),
+                                Row::new(vec![attr.name, attr.description]),
+                            ));
                         }
                     }
-                    Err(err) => self
-                        .stateful_list_items
-                        .push(ListItem::new(format!("Error retrieving info: {}", err))),
+                    Err(err) => {
+                        self.stateful_table_items.push((
+                            "".to_string(),
+                            Row::new(vec![
+                                format!("Error retrieving info: {}", err),
+                                "".to_string(),
+                            ]),
+                        ));
+                    }
                 }
             }
         }
@@ -92,17 +106,30 @@ impl<'a> ViewExplorerHome<'a> {
             if let Some(current_device) = shared_view_state.current_selected_device.clone() {
                 match get_command_list(current_device.as_str()) {
                     Ok(commands) => {
-                        for command in commands {
-                            self.stateful_list_items.push(ListItem::new(command.name));
+                        for comm in commands {
+                            self.stateful_table_items.push((
+                                format!("{}", comm.name),
+                                Row::new(vec![
+                                    comm.name,
+                                    format!("{:?}", comm.in_type),
+                                    format!("{:?}", comm.out_type),
+                                ]),
+                            ));
                         }
                     }
-                    Err(err) => self
-                        .stateful_list_items
-                        .push(ListItem::new(format!("Error retrieving info: {}", err))),
+                    Err(err) => {
+                        self.stateful_table_items.push((
+                            "".to_string(),
+                            Row::new(vec![
+                                format!("Error retrieving info: {}", err),
+                                "".to_string(),
+                            ]),
+                        ));
+                    }
                 }
             }
         }
-        self.stateful_list.select(Some(0));
+        self.stateful_table.select(Some(0));
     }
 
     fn draw_right<B: Backend>(
@@ -116,21 +143,76 @@ impl<'a> ViewExplorerHome<'a> {
             None => String::from(""),
         };
         selected_device = format!(" Selected: {}", selected_device);
-        let list = List::new(self.stateful_list_items.clone())
-            .block(
-                Block::default()
-                    .title(selected_device)
-                    .borders(Borders::ALL),
-            )
+
+        let header = match self.device_display {
+            DeviceDisplay::Commands => {
+                vec!["Name", "Type In", "Type Out"]
+            }
+            DeviceDisplay::Attributes => {
+                vec!["Name", "Description"]
+            }
+            DeviceDisplay::Empty => {
+                vec![]
+            }
+        };
+
+        let widths = match self.device_display {
+            DeviceDisplay::Commands => {
+                let size_a = area.width / 3 + 1;
+                let size_b = area.width / 3;
+                let size_c = area.width / 3;
+                vec![
+                    Constraint::Length(size_a),
+                    Constraint::Length(size_b),
+                    Constraint::Length(size_c),
+                ]
+            }
+            DeviceDisplay::Attributes => {
+                let size_a = area.width / 2 + 1;
+                let size_b = area.width / 2;
+                vec![Constraint::Length(size_a), Constraint::Length(size_b)]
+            }
+            DeviceDisplay::Empty => {
+                vec![]
+            }
+        };
+
+        // Column widths
+        let table_items: Vec<Row> = self
+            .stateful_table_items
+            .iter()
+            .cloned()
+            .map(|entry| entry.1)
+            .collect();
+
+        let table = Table::new(table_items)
+            // You can set the style of the entire Table.
             .style(Style::default().fg(Color::White))
+            // It has an optional header, which is simply a Row always visible at the top.
+            .header(
+                Row::new(header)
+                    .style(Style::default().fg(Color::LightCyan))
+                    // If you want some space between the header and the rest of the rows, you can always
+                    // specify some margin at the bottom.
+                    .bottom_margin(1),
+            )
+            // As any other widget, a Table can be wrapped in a Block.
+            .block(Block::default().title(selected_device))
+            // Columns widths are constrained in the same way as Layout...
+            .widths(&widths)
+            // ...and they can be separated by a fixed spacing.
+            .column_spacing(1)
+            // If you wish to highlight a row in any specific way when it is selected...
             .highlight_style(
                 Style::default()
                     .fg(Color::Black)
                     .bg(Color::LightGreen)
                     .add_modifier(Modifier::BOLD),
             )
-            .highlight_symbol(">> ");
-        f.render_stateful_widget(list, area, &mut self.stateful_list.clone());
+            // ...and potentially show a symbol in front of the selection.
+            .highlight_symbol(">>");
+
+        f.render_stateful_widget(table, area, &mut self.stateful_table.clone());
     }
 
     fn handle_event_left(&mut self, key_event: &KeyEvent, shared_view_state: &mut SharedViewState) {
@@ -142,7 +224,9 @@ impl<'a> ViewExplorerHome<'a> {
                 self.stateful_tree.open();
                 if shared_view_state.current_selected_device.is_some() {
                     self.focus = Focus::Right;
+                    self.device_display = DeviceDisplay::Attributes;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
+                    self.stateful_table.select(Some(0));
                 } else {
                     self.populate_device_items(shared_view_state, DeviceDisplay::Empty);
                 }
@@ -161,12 +245,14 @@ impl<'a> ViewExplorerHome<'a> {
                 if shared_view_state.current_selected_device.is_some() {
                     self.focus = Focus::Right;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Commands);
+                    self.stateful_table.select(Some(0));
                 }
             }
             KeyCode::Char('a') => {
                 if shared_view_state.current_selected_device.is_some() {
                     self.focus = Focus::Right;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
+                    self.stateful_table.select(Some(0));
                 }
             }
             _ => {}
@@ -180,33 +266,46 @@ impl<'a> ViewExplorerHome<'a> {
     ) {
         match key_event.code {
             KeyCode::Up => {
-                if let Some(current_selected) = self.stateful_list.selected() {
+                if let Some(current_selected) = self.stateful_table.selected() {
                     if current_selected > 0 {
-                        self.stateful_list.select(Some(current_selected - 1));
+                        self.stateful_table.select(Some(current_selected - 1));
                     }
                 }
             }
             KeyCode::Down => {
-                if let Some(current_selected) = self.stateful_list.selected() {
-                    if current_selected == self.stateful_list_items.len() {
-                        self.stateful_list.select(Some(0));
+                if let Some(current_selected) = self.stateful_table.selected() {
+                    if current_selected == self.stateful_table_items.len() {
+                        self.stateful_table.select(Some(0));
                     } else {
-                        self.stateful_list.select(Some(current_selected + 1));
+                        self.stateful_table.select(Some(current_selected + 1));
                     }
                 }
             }
+
             KeyCode::Left => {
                 self.populate_device_items(shared_view_state, DeviceDisplay::Empty);
                 self.focus = Focus::Left;
-                self.stateful_list_items.clear();
+                self.stateful_table_items.clear();
+                self.device_display = DeviceDisplay::Empty;
+            }
+            KeyCode::Char('w') => {
+                if let Some(current_position) = self.stateful_table.selected() {
+                    if let Some(current_device) = &shared_view_state.current_selected_device {
+                        if let Some(attr_row) = self.stateful_table_items.get(current_position) {
+                            shared_view_state.add_watch_attribute(attr_row.0.clone());
+                        }
+                    }
+                }
             }
             KeyCode::Char('c') => {
                 if shared_view_state.current_selected_device.is_some() {
+                    self.device_display = DeviceDisplay::Commands;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Commands);
                 }
             }
             KeyCode::Char('a') => {
                 if shared_view_state.current_selected_device.is_some() {
+                    self.device_display = DeviceDisplay::Attributes;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
                 }
             }
