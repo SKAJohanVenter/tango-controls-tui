@@ -53,7 +53,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Setup input handling
     let (tx, rx) = mpsc::channel();
-    let tango_update_tx = tx.clone();
 
     let tick_rate = Duration::from_millis(cli.tick_rate);
 

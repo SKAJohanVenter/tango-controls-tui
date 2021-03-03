@@ -7,13 +7,9 @@ use crossterm::event::{KeyCode, KeyEvent};
 use std::convert::{From, Into};
 use tui::{
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{
-        Block, BorderType, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table,
-        TableState,
-    },
+    widgets::{Block, Borders, Row, Table, TableState},
     Frame,
 };
 use tui_tree_widget::Tree;
@@ -55,7 +51,7 @@ impl<'a> ViewExplorerHome<'a> {
         &self,
         f: &mut Frame<B>,
         area: Rect,
-        shared_view_state: &mut SharedViewState,
+        _shared_view_state: &mut SharedViewState,
     ) {
         let mut items = Tree::new(self.stateful_tree.items.to_vec())
             .block(Block::default().borders(Borders::ALL).title("Device Tree"));
@@ -290,10 +286,8 @@ impl<'a> ViewExplorerHome<'a> {
             }
             KeyCode::Char('w') => {
                 if let Some(current_position) = self.stateful_table.selected() {
-                    if let Some(current_device) = &shared_view_state.current_selected_device {
-                        if let Some(attr_row) = self.stateful_table_items.get(current_position) {
-                            shared_view_state.add_watch_attribute(attr_row.0.clone());
-                        }
+                    if let Some(attr_row) = self.stateful_table_items.get(current_position) {
+                        shared_view_state.add_watch_attribute(attr_row.0.clone());
                     }
                 }
             }

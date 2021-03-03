@@ -23,12 +23,24 @@ use tui::{
 type DeviceName = String;
 type AttributeName = String;
 type AttributeValue = Option<String>;
+#[derive(Debug)]
+pub enum TabChoice {
+    Explorer,
+    WatchList,
+}
+
+impl Default for TabChoice {
+    fn default() -> TabChoice {
+        TabChoice::Explorer
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct SharedViewState {
     pub tango_host: Option<String>,
     pub current_selected_device: Option<String>,
     pub watch_list: BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeValue>>,
+    pub current_tab: TabChoice,
 }
 
 impl SharedViewState {
@@ -45,7 +57,7 @@ impl SharedViewState {
         };
     }
 
-    pub fn remove_watch_attribute(&mut self, attribute_name: String) {
+    pub fn _remove_watch_attribute(&mut self, attribute_name: String) {
         if let Some(current_device) = &self.current_selected_device {
             if let Some(attr_map) = self.watch_list.get_mut(current_device) {
                 attr_map.remove(&attribute_name);
@@ -88,7 +100,7 @@ pub trait Draw {
         ]
     }
 
-    fn get_view_menu_items(&self, shared_view_state: &mut SharedViewState) -> Vec<MenuOption> {
+    fn get_view_menu_items(&self, _shared_view_state: &mut SharedViewState) -> Vec<MenuOption> {
         vec![]
     }
 
@@ -150,8 +162,16 @@ pub trait Draw {
         f.render_widget(table, area);
     }
 
-    fn draw_tabs<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
-        let selected_tab = 0;
+    fn draw_tabs<B: Backend>(
+        &self,
+        f: &mut Frame<B>,
+        area: Rect,
+        shared_view_state: &mut SharedViewState,
+    ) {
+        let selected_tab = match shared_view_state.current_tab {
+            TabChoice::Explorer => 0,
+            TabChoice::WatchList => 1,
+        };
         let tab_titles = ["Explorer", "Watchlist"]
             .iter()
             .cloned()
@@ -263,7 +283,7 @@ pub trait Draw {
 
         self.draw_header(f, chunks[0], shared_view_state);
         self.draw_menu(f, chunks[1], shared_view_state);
-        self.draw_tabs(f, chunks[2]);
+        self.draw_tabs(f, chunks[2], shared_view_state);
         self.draw_body(f, chunks[3], shared_view_state);
         self.draw_footer(f, chunks[4]);
     }

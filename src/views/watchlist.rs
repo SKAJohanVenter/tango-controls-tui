@@ -2,13 +2,10 @@ use crate::views::{Draw, SharedViewState};
 use std::convert::{From, Into};
 use tui::{
     backend::Backend,
+    layout::Constraint,
     layout::Rect,
-    layout::{Alignment, Constraint},
     style::{Color, Modifier, Style},
-    widgets::{
-        Block, BorderType, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table,
-        TableState,
-    },
+    widgets::{Block, Row, Table, TableState},
     Frame,
 };
 

@@ -1,8 +1,7 @@
-use crate::tango_utils::{self, read_attribute, TangoDevicesLookup};
+use crate::tango_utils::{self, TangoDevicesLookup};
 use crate::views::explorer::ViewExplorerHome;
 use crate::views::watchlist::ViewWatchList;
-use crate::views::{Draw, SharedViewState, View};
-use std::collections::BTreeMap;
+use crate::views::{Draw, SharedViewState, TabChoice, View};
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -78,9 +77,11 @@ impl<'a> App<'a> {
         let view = self.views.get(self.current_view_ix).unwrap();
         match view {
             View::Explorer(eh) => {
+                self.shared_view_state.current_tab = TabChoice::Explorer;
                 eh.draw(f, &mut self.shared_view_state);
             }
             View::WatchList(wl) => {
+                self.shared_view_state.current_tab = TabChoice::WatchList;
                 wl.draw(f, &mut self.shared_view_state);
             }
         }
@@ -102,7 +103,7 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn get_current_view(&self) -> &View {
-        self.views.get(self.current_view_ix).unwrap()
-    }
+    // pub fn get_current_view(&self) -> &View {
+    //     self.views.get(self.current_view_ix).unwrap()
+    // }
 }
