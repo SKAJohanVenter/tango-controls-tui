@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // println!("{:#?}", app.tango_devices_lookup);
         match rx.recv()? {
             Event::Input(event) => match event.code {
-                KeyCode::Char('q') => {
+                KeyCode::Esc => {
                     disable_raw_mode()?;
                     execute!(std::io::stdout(), DisableMouseCapture)?;
                     terminal.clear()?;

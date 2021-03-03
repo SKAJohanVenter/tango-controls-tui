@@ -90,7 +90,7 @@ pub trait Draw {
     fn get_default_menu_items(&self) -> Vec<MenuOption> {
         vec![
             MenuOption {
-                key: "q".to_string(),
+                key: "ESC".to_string(),
                 description: "Quit".to_string(),
             },
             MenuOption {

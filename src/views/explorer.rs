@@ -285,9 +285,11 @@ impl<'a> ViewExplorerHome<'a> {
                 self.device_display = DeviceDisplay::Empty;
             }
             KeyCode::Char('w') => {
-                if let Some(current_position) = self.stateful_table.selected() {
-                    if let Some(attr_row) = self.stateful_table_items.get(current_position) {
-                        shared_view_state.add_watch_attribute(attr_row.0.clone());
+                if self.device_display == DeviceDisplay::Attributes {
+                    if let Some(current_position) = self.stateful_table.selected() {
+                        if let Some(attr_row) = self.stateful_table_items.get(current_position) {
+                            shared_view_state.add_watch_attribute(attr_row.0.clone());
+                        }
                     }
                 }
             }
