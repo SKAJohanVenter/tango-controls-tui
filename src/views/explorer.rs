@@ -182,30 +182,21 @@ impl<'a> ViewExplorerHome<'a> {
             .collect();
 
         let table = Table::new(table_items)
-            // You can set the style of the entire Table.
             .style(Style::default().fg(Color::White))
-            // It has an optional header, which is simply a Row always visible at the top.
             .header(
                 Row::new(header)
                     .style(Style::default().fg(Color::LightCyan))
-                    // If you want some space between the header and the rest of the rows, you can always
-                    // specify some margin at the bottom.
                     .bottom_margin(1),
             )
-            // As any other widget, a Table can be wrapped in a Block.
             .block(Block::default().title(selected_device))
-            // Columns widths are constrained in the same way as Layout...
             .widths(&widths)
-            // ...and they can be separated by a fixed spacing.
             .column_spacing(1)
-            // If you wish to highlight a row in any specific way when it is selected...
             .highlight_style(
                 Style::default()
                     .fg(Color::Black)
                     .bg(Color::LightGreen)
                     .add_modifier(Modifier::BOLD),
             )
-            // ...and potentially show a symbol in front of the selection.
             .highlight_symbol(">>");
 
         f.render_stateful_widget(table, area, &mut self.stateful_table.clone());
@@ -238,15 +229,15 @@ impl<'a> ViewExplorerHome<'a> {
                 self.populate_device_items(shared_view_state, DeviceDisplay::Empty);
             }
             KeyCode::Char('c') => {
-                if shared_view_state.current_selected_device.is_some() {
-                    self.focus = Focus::Right;
+                if shared_view_state.current_selected_device.is_some() && self.focus == Focus::Right
+                {
                     self.populate_device_items(shared_view_state, DeviceDisplay::Commands);
                     self.stateful_table.select(Some(0));
                 }
             }
             KeyCode::Char('a') => {
-                if shared_view_state.current_selected_device.is_some() {
-                    self.focus = Focus::Right;
+                if shared_view_state.current_selected_device.is_some() && self.focus == Focus::Right
+                {
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
                     self.stateful_table.select(Some(0));
                 }
@@ -317,15 +308,32 @@ impl Draw for ViewExplorerHome<'_> {
             description: "Navigate tree".to_string(),
         }];
 
-        if shared_view_state.current_selected_device.is_some() {
+        if shared_view_state.current_selected_device.is_some()
+            && self.focus == Focus::Right
+            && self.device_display == DeviceDisplay::Commands
+        {
             items.push(MenuOption {
                 key: "a".to_string(),
                 description: "Attribute List".to_string(),
             });
+        }
 
+        if shared_view_state.current_selected_device.is_some()
+            && self.focus == Focus::Right
+            && self.device_display == DeviceDisplay::Attributes
+        {
             items.push(MenuOption {
                 key: "c".to_string(),
                 description: "Command List".to_string(),
+            });
+        }
+        if shared_view_state.current_selected_device.is_some()
+            && self.focus == Focus::Right
+            && self.device_display == DeviceDisplay::Attributes
+        {
+            items.push(MenuOption {
+                key: "w".to_string(),
+                description: "Watch Attribute".to_string(),
             });
         }
         items

@@ -110,17 +110,35 @@ pub trait Draw {
         area: Rect,
         shared_view_state: &mut SharedViewState,
     ) {
-        let tango_host_text = Paragraph::new(format!(
-            "TANGO_HOST: {}",
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .margin(0)
+            .constraints(
+                [
+                    Constraint::Length(area.width / 2),
+                    Constraint::Length(area.width / 2),
+                ]
+                .as_ref(),
+            )
+            .split(area);
+
+        let tango_host_text = Paragraph::new("Tango Controls Explorer TUI")
+            .style(Style::default().fg(Color::LightCyan))
+            .alignment(Alignment::Left);
+        // .block(Block::default().style(Style::default().fg(Color::White)));
+        f.render_widget(tango_host_text, chunks[0]);
+
+        let program_name_text = Paragraph::new(format!(
+            "  TANGO_HOST: {}",
             shared_view_state
                 .tango_host
                 .as_ref()
                 .unwrap_or(&String::from(""))
         ))
         .style(Style::default().fg(Color::LightCyan))
-        .alignment(Alignment::Left)
-        .block(Block::default().style(Style::default().fg(Color::White)));
-        f.render_widget(tango_host_text, area);
+        .alignment(Alignment::Right);
+        // .block(Block::default().style(Style::default().fg(Color::White)));
+        f.render_widget(program_name_text, chunks[1]);
     }
 
     fn draw_menu<B: Backend>(
@@ -131,7 +149,22 @@ pub trait Draw {
     ) {
         let mut menu_items: Vec<MenuOption> = self.get_default_menu_items().clone();
         menu_items.extend(self.get_view_menu_items(shared_view_state).clone());
-        let mut rows: Vec<Row> = menu_items
+
+        // Split menu left/right
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .margin(1)
+            .constraints(
+                [
+                    Constraint::Length(area.width / 3),
+                    Constraint::Length(area.width / 3),
+                    Constraint::Length(area.width / 3),
+                ]
+                .as_ref(),
+            )
+            .split(area);
+
+        let rows: Vec<Row> = menu_items
             .into_iter()
             .map(|menu_option| {
                 Row::new(vec![
@@ -144,22 +177,28 @@ pub trait Draw {
                 ])
             })
             .collect();
-        rows.insert(0, Row::new(vec![Cell::from("")]));
 
-        let table = Table::new(rows)
-            // You can set the style of the entire Table.
+        let left_rows: Vec<Row> = rows.iter().take(3).cloned().collect();
+        let left_table = Table::new(left_rows)
             .style(Style::default().fg(Color::White))
-            // It has an optional header, which is simply a Row always visible at the top.
-            // As any other widget, a Table can be wrapped in a Block.
-            // Columns widths are constrained in the same way as Layout...
             .widths(&[
                 Constraint::Length(10),
                 Constraint::Length(15),
                 Constraint::Length(15),
             ])
-            // ...and they can be separated by a fixed spacing.
             .column_spacing(1);
-        f.render_widget(table, area);
+        f.render_widget(left_table, chunks[0]);
+
+        let right_rows: Vec<Row> = rows.iter().skip(3).cloned().collect();
+        let right_table = Table::new(right_rows)
+            .style(Style::default().fg(Color::White))
+            .widths(&[
+                Constraint::Length(10),
+                Constraint::Length(15),
+                Constraint::Length(15),
+            ])
+            .column_spacing(1);
+        f.render_widget(right_table, chunks[1]);
     }
 
     fn draw_tabs<B: Backend>(
@@ -275,7 +314,7 @@ pub trait Draw {
                     Constraint::Length(6), // Instructions
                     Constraint::Length(3), // Tabs
                     Constraint::Min(2),    // Explorer
-                    Constraint::Length(3), // Messages
+                                           // Constraint::Length(3), // Messages
                 ]
                 .as_ref(),
             )
@@ -285,7 +324,7 @@ pub trait Draw {
         self.draw_menu(f, chunks[1], shared_view_state);
         self.draw_tabs(f, chunks[2], shared_view_state);
         self.draw_body(f, chunks[3], shared_view_state);
-        self.draw_footer(f, chunks[4]);
+        // self.draw_footer(f, chunks[4]);
     }
 }
 
