@@ -138,7 +138,17 @@ impl<'a> ViewExplorerHome<'a> {
             Some(device_name) => device_name,
             None => String::from(""),
         };
-        selected_device = format!(" Selected: {}", selected_device);
+        let selected_device = match self.device_display {
+            DeviceDisplay::Commands => {
+                format!(" Commands, selected: {}", selected_device)
+            }
+            DeviceDisplay::Attributes => {
+                format!(" Attributes, selected: {}", selected_device)
+            }
+            DeviceDisplay::Empty => {
+                format!(" Selected: {}", selected_device)
+            }
+        };
 
         let header = match self.device_display {
             DeviceDisplay::Commands => {
@@ -383,7 +393,7 @@ impl Draw for ViewExplorerHome<'_> {
         let length_right = area.width - length_left;
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
-            .margin(0)
+            .margin(1)
             .constraints(
                 [
                     Constraint::Length(length_left),
