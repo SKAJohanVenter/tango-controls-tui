@@ -31,9 +31,9 @@ impl ViewWatchList {
     ) {
         let header = vec!["Device", "Attribute", "Value"];
         let widths = {
-            let size_a = area.width / 3 + 1;
-            let size_b = area.width / 3;
-            let size_c = area.width / 3;
+            let size_a = area.width / 6;
+            let size_b = area.width / 6;
+            let size_c = area.width - size_a - size_b;
             vec![
                 Constraint::Length(size_a),
                 Constraint::Length(size_b),
@@ -42,7 +42,8 @@ impl ViewWatchList {
         };
 
         let mut table_items: Vec<Row> = Vec::new();
-        for (device_name, attr_map) in &shared_view_state.watch_list {
+        let w = &shared_view_state.watch_list.lock().unwrap();
+        for (device_name, attr_map) in w.iter() {
             for (attr_name, attr_value) in attr_map {
                 if let Some(attr_value) = attr_value {
                     table_items.push(Row::new(vec![

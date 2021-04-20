@@ -1,7 +1,9 @@
 use crate::tango_utils::{self, TangoDevicesLookup};
 use crate::views::explorer::ViewExplorerHome;
 use crate::views::watchlist::ViewWatchList;
+use crate::views::{AttributeName, AttributeValue, DeviceName};
 use crate::views::{Draw, SharedViewState, TabChoice, View};
+use std::collections::BTreeMap;
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -86,24 +88,20 @@ impl<'a> App<'a> {
             }
         }
     }
-    pub fn on_tick(&mut self) {
-        for (device_name, attr_map) in self.shared_view_state.watch_list.iter_mut() {
-            let attrs: Vec<String> = attr_map.keys().cloned().collect();
-            for attr_name in attrs {
-                let new_value = match tango_utils::read_attribute(device_name, &attr_name) {
-                    Ok(value) => match value.data.into_string() {
-                        Ok(val) => Some(val),
-                        // Looks like err is a valid value
-                        Err(err) => Some(format!("{}", err)),
-                    },
-                    Err(err) => Some(format!("Error: {}", err)),
-                };
-                attr_map.insert(attr_name, new_value);
+
+    pub fn update_device_attr_map(
+        &mut self,
+        attr_map: BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeValue>>,
+    ) {
+        match self.shared_view_state.watch_list.try_lock() {
+            Ok(mut wl) => {
+                *wl = attr_map;
             }
+            Err(_) => {}
         }
     }
 
-    // pub fn get_current_view(&self) -> &View {
-    //     self.views.get(self.current_view_ix).unwrap()
-    // }
+    pub fn on_tick(&mut self) {
+        // Unimplemented for now
+    }
 }

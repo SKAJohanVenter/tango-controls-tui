@@ -1,9 +1,9 @@
 pub mod explorer;
 pub mod watchlist;
 
-use std::collections::BTreeMap;
-
 use explorer::ViewExplorerHome;
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 use watchlist::ViewWatchList;
 
 // use tui-tree-widget::
@@ -20,9 +20,9 @@ use tui::{
     Frame,
 };
 
-type DeviceName = String;
-type AttributeName = String;
-type AttributeValue = Option<String>;
+pub type DeviceName = String;
+pub type AttributeName = String;
+pub type AttributeValue = Option<String>;
 #[derive(Debug)]
 pub enum TabChoice {
     Explorer,
@@ -39,7 +39,7 @@ impl Default for TabChoice {
 pub struct SharedViewState {
     pub tango_host: Option<String>,
     pub current_selected_device: Option<String>,
-    pub watch_list: BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeValue>>,
+    pub watch_list: Arc<Mutex<BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeValue>>>>,
     pub current_tab: TabChoice,
 }
 
@@ -47,11 +47,15 @@ impl SharedViewState {
     pub fn add_watch_attribute(&mut self, attribute_name: String) {
         if let Some(current_device) = &self.current_selected_device {
             // Add the device if not present
+
+            // self.watch_list
             self.watch_list
+                .lock()
+                .unwrap()
                 .entry(current_device.clone())
                 .or_insert(BTreeMap::default());
             // Add the attribute if not present
-            if let Some(attr_map) = self.watch_list.get_mut(current_device) {
+            if let Some(attr_map) = self.watch_list.lock().unwrap().get_mut(current_device) {
                 attr_map.entry(attribute_name).or_insert(None);
             }
         };
@@ -59,13 +63,13 @@ impl SharedViewState {
 
     pub fn _remove_watch_attribute(&mut self, attribute_name: String) {
         if let Some(current_device) = &self.current_selected_device {
-            if let Some(attr_map) = self.watch_list.get_mut(current_device) {
+            if let Some(attr_map) = self.watch_list.lock().unwrap().get_mut(current_device) {
                 attr_map.remove(&attribute_name);
             }
 
-            if let Some(attr_map) = self.watch_list.get(current_device) {
+            if let Some(attr_map) = self.watch_list.lock().unwrap().get(current_device) {
                 if attr_map.len() == 0 {
-                    self.watch_list.remove(current_device);
+                    self.watch_list.lock().unwrap().remove(current_device);
                 }
             }
         }
@@ -233,43 +237,7 @@ pub trait Draw {
     ) {
     }
 
-    fn draw_watchlist<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
-        let length_left = area.width / 3;
-        let length_right = area.width - length_left;
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .margin(0)
-            .constraints(
-                [
-                    Constraint::Length(length_left),
-                    Constraint::Length(length_right),
-                ]
-                .as_ref(),
-            )
-            .split(area);
-
-        let left = Paragraph::new("Left  W")
-            .style(Style::default().fg(Color::LightCyan))
-            .alignment(Alignment::Left)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .style(Style::default().fg(Color::White))
-                    .border_type(BorderType::Plain),
-            );
-
-        let right = Paragraph::new("Right  W")
-            .style(Style::default().fg(Color::LightCyan))
-            .alignment(Alignment::Left)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .style(Style::default().fg(Color::White))
-                    .border_type(BorderType::Plain),
-            );
-        f.render_widget(left, chunks[0]);
-        f.render_widget(right, chunks[1]);
-    }
+    fn draw_watchlist<B: Backend>(&self, _f: &mut Frame<B>, _area: Rect) {}
 
     fn draw_footer<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
         let footer = Paragraph::new("Tango Controls Explorer TUI")
@@ -327,20 +295,3 @@ pub trait Draw {
         // self.draw_footer(f, chunks[4]);
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn test_view() {
-//         let v = View::default();
-//         println!("{:#?}", v);
-//         match v {
-//             View::ExplorerHome(a) => a.test_draw(),
-//             View::ExplorerCommands(a) => a.test_draw(),
-//             View::ExplorerAttributes(a) => a.test_draw(),
-//             View::WatchList(a) => a.test_draw(),
-//         }
-//     }
-// }

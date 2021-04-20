@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 crossterm = { version = "0.19"}
 tui = { version = "0.14", default-features = false, features = ['crossterm'] }
-argh = "0.1"
+clap = "3.0.0-beta.2"
 tango-client = "0.2.3"
 unicode-width = "0.1"
 tui-tree-widget = "0.4.0"

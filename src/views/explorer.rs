@@ -59,8 +59,8 @@ impl<'a> ViewExplorerHome<'a> {
             items = items
                 .highlight_style(
                     Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::LightGreen)
+                        .fg(Color::White)
+                        .bg(Color::LightBlue)
                         .add_modifier(Modifier::BOLD),
                 )
                 .highlight_symbol(">> ");
@@ -75,55 +75,58 @@ impl<'a> ViewExplorerHome<'a> {
         device_display: DeviceDisplay,
     ) {
         self.stateful_table_items.clear();
-        if device_display == DeviceDisplay::Attributes {
-            if let Some(current_device) = shared_view_state.current_selected_device.clone() {
-                match get_attribute_list(current_device.as_str()) {
-                    Ok(attributes) => {
-                        for attr in attributes {
-                            self.stateful_table_items.push((
-                                format!("{}", attr.name),
-                                Row::new(vec![attr.name, attr.description]),
-                            ));
+        match device_display {
+            DeviceDisplay::Commands => {
+                if let Some(current_device) = shared_view_state.current_selected_device.clone() {
+                    match get_command_list(current_device.as_str()) {
+                        Ok(commands) => {
+                            for comm in commands {
+                                self.stateful_table_items.push((
+                                    format!("{}", comm.name),
+                                    Row::new(vec![
+                                        comm.name,
+                                        format!("{:?}", comm.in_type),
+                                        format!("{:?}", comm.out_type),
+                                    ]),
+                                ));
+                            }
                         }
-                    }
-                    Err(err) => {
-                        self.stateful_table_items.push((
-                            "".to_string(),
-                            Row::new(vec![
-                                format!("Error retrieving info: {}", err),
-                                "".to_string(),
-                            ]),
-                        ));
-                    }
-                }
-            }
-        }
-        if device_display == DeviceDisplay::Commands {
-            if let Some(current_device) = shared_view_state.current_selected_device.clone() {
-                match get_command_list(current_device.as_str()) {
-                    Ok(commands) => {
-                        for comm in commands {
+                        Err(err) => {
                             self.stateful_table_items.push((
-                                format!("{}", comm.name),
+                                "".to_string(),
                                 Row::new(vec![
-                                    comm.name,
-                                    format!("{:?}", comm.in_type),
-                                    format!("{:?}", comm.out_type),
+                                    format!("Error retrieving info: {}", err),
+                                    "".to_string(),
                                 ]),
                             ));
                         }
                     }
-                    Err(err) => {
-                        self.stateful_table_items.push((
-                            "".to_string(),
-                            Row::new(vec![
-                                format!("Error retrieving info: {}", err),
+                }
+            }
+            DeviceDisplay::Attributes => {
+                if let Some(current_device) = shared_view_state.current_selected_device.clone() {
+                    match get_attribute_list(current_device.as_str()) {
+                        Ok(attributes) => {
+                            for attr in attributes {
+                                self.stateful_table_items.push((
+                                    format!("{}", attr.name),
+                                    Row::new(vec![attr.name, attr.description]),
+                                ));
+                            }
+                        }
+                        Err(err) => {
+                            self.stateful_table_items.push((
                                 "".to_string(),
-                            ]),
-                        ));
+                                Row::new(vec![
+                                    format!("Error retrieving info: {}", err),
+                                    "".to_string(),
+                                ]),
+                            ));
+                        }
                     }
                 }
             }
+            DeviceDisplay::Empty => {}
         }
         self.stateful_table.select(Some(0));
     }
@@ -134,7 +137,7 @@ impl<'a> ViewExplorerHome<'a> {
         area: Rect,
         shared_view_state: &mut SharedViewState,
     ) {
-        let mut selected_device = match shared_view_state.current_selected_device.clone() {
+        let selected_device = match shared_view_state.current_selected_device.clone() {
             Some(device_name) => device_name,
             None => String::from(""),
         };
@@ -155,7 +158,7 @@ impl<'a> ViewExplorerHome<'a> {
                 vec!["Name", "Type In", "Type Out"]
             }
             DeviceDisplay::Attributes => {
-                vec!["Name", "Description"]
+                vec!["Name", "Description", "Watched"]
             }
             DeviceDisplay::Empty => {
                 vec![]
@@ -203,8 +206,8 @@ impl<'a> ViewExplorerHome<'a> {
             .column_spacing(1)
             .highlight_style(
                 Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::LightGreen)
+                    .fg(Color::White)
+                    .bg(Color::LightBlue)
                     .add_modifier(Modifier::BOLD),
             )
             .highlight_symbol(">>");
