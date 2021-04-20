@@ -1,4 +1,4 @@
-use crate::tango_utils::{self, TangoDevicesLookup};
+use crate::tango_utils::TangoDevicesLookup;
 use crate::views::explorer::ViewExplorerHome;
 use crate::views::watchlist::ViewWatchList;
 use crate::views::{AttributeName, AttributeValue, DeviceName};

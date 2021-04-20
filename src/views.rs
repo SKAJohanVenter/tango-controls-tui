@@ -6,8 +6,6 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use watchlist::ViewWatchList;
 
-// use tui-tree-widget::
-
 use crate::tango_utils::TangoDevicesLookup;
 use crossterm::event::KeyEvent;
 use tui::symbols::line::DOUBLE_VERTICAL;

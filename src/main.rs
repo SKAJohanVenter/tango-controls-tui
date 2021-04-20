@@ -12,14 +12,9 @@ use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnableLineWrap, EnterAlternateScreen},
-    ExecutableCommand,
 };
 use std::io::{self, stdout, Write};
-use std::{
-    collections::BTreeMap,
-    env,
-    sync::{Arc, Mutex},
-};
+use std::{collections::BTreeMap, env, sync::Arc};
 use std::{
     error::Error,
     sync::mpsc,
