@@ -158,7 +158,7 @@ impl<'a> ViewExplorerHome<'a> {
                 vec!["Name", "Type In", "Type Out"]
             }
             DeviceDisplay::Attributes => {
-                vec!["Name", "Description", "Watched"]
+                vec!["Name", "Type", "Watched"]
             }
             DeviceDisplay::Empty => {
                 vec![]

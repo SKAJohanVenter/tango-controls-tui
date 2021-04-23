@@ -1,4 +1,6 @@
+use crate::tango_utils;
 use crate::views::{Draw, SharedViewState};
+use log::error;
 use std::convert::{From, Into};
 use tui::{
     backend::Backend,
@@ -8,6 +10,45 @@ use tui::{
     widgets::{Block, Row, Table, TableState},
     Frame,
 };
+
+#[derive(Debug, Clone)]
+pub enum AttributeReading {
+    Value(String),
+    Error(String),
+}
+
+impl Default for AttributeReading {
+    fn default() -> AttributeReading {
+        AttributeReading::Value(String::from(""))
+    }
+}
+
+impl AttributeReading {
+    pub fn update(&mut self, device_name: &String, attr_name: &String) -> &mut AttributeReading {
+        match self {
+            AttributeReading::Value(_) => {
+                match tango_utils::read_attribute(device_name, attr_name) {
+                    Ok(value) => {
+                        match value.data.into_string() {
+                            Ok(val) => *self = AttributeReading::Value(format!("{}", val)),
+                            // Looks like err is a valid value
+                            Err(err) => *self = AttributeReading::Value(format!("{}", err)),
+                        }
+                    }
+                    Err(err) => {
+                        *self = AttributeReading::Error("Reading of type unsupported".to_string());
+                        error!(
+                            "Reading conversion error for {}/{}: {}",
+                            device_name, attr_name, err
+                        );
+                    }
+                };
+            }
+            _ => {}
+        };
+        self
+    }
+}
 
 #[derive(Default, Debug)]
 pub struct ViewWatchList {
@@ -42,22 +83,18 @@ impl ViewWatchList {
         };
 
         let mut table_items: Vec<Row> = Vec::new();
-        let w = &shared_view_state.watch_list.lock().unwrap();
-        for (device_name, attr_map) in w.iter() {
+        let watch_l = &shared_view_state.watch_list.lock().unwrap();
+        for (device_name, attr_map) in watch_l.iter() {
             for (attr_name, attr_value) in attr_map {
-                if let Some(attr_value) = attr_value {
-                    table_items.push(Row::new(vec![
-                        device_name.clone(),
-                        attr_name.clone(),
-                        attr_value.clone(),
-                    ]));
-                } else {
-                    table_items.push(Row::new(vec![
-                        device_name.clone(),
-                        attr_name.clone(),
-                        "N/A".to_string(),
-                    ]));
-                }
+                let attr_reading = match attr_value {
+                    AttributeReading::Value(val) => val,
+                    AttributeReading::Error(val) => val,
+                };
+                table_items.push(Row::new(vec![
+                    device_name.clone(),
+                    attr_name.clone(),
+                    attr_reading.clone(),
+                ]));
             }
         }
 

@@ -1,9 +1,7 @@
-use crate::tango_utils::TangoDevicesLookup;
 use crate::views::explorer::ViewExplorerHome;
 use crate::views::watchlist::ViewWatchList;
-use crate::views::{AttributeName, AttributeValue, DeviceName};
 use crate::views::{Draw, SharedViewState, TabChoice, View};
-use std::collections::BTreeMap;
+use crate::{tango_utils::TangoDevicesLookup, views::AttributeReadings};
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
@@ -89,10 +87,7 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn update_device_attr_map(
-        &mut self,
-        attr_map: BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeValue>>,
-    ) {
+    pub fn update_device_attr_map(&mut self, attr_map: AttributeReadings) {
         match self.shared_view_state.watch_list.try_lock() {
             Ok(mut wl) => {
                 *wl = attr_map;

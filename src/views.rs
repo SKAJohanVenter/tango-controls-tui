@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use watchlist::ViewWatchList;
 
 use crate::tango_utils::TangoDevicesLookup;
+use crate::views::watchlist::AttributeReading;
 use crossterm::event::KeyEvent;
 use tui::symbols::line::DOUBLE_VERTICAL;
 use tui::{
@@ -20,7 +21,6 @@ use tui::{
 
 pub type DeviceName = String;
 pub type AttributeName = String;
-pub type AttributeValue = Option<String>;
 #[derive(Debug)]
 pub enum TabChoice {
     Explorer,
@@ -33,11 +33,13 @@ impl Default for TabChoice {
     }
 }
 
+pub type AttributeReadings = BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeReading>>;
+
 #[derive(Debug, Default)]
 pub struct SharedViewState {
     pub tango_host: Option<String>,
     pub current_selected_device: Option<String>,
-    pub watch_list: Arc<Mutex<BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeValue>>>>,
+    pub watch_list: Arc<Mutex<AttributeReadings>>,
     pub current_tab: TabChoice,
 }
 
@@ -54,7 +56,9 @@ impl SharedViewState {
                 .or_insert(BTreeMap::default());
             // Add the attribute if not present
             if let Some(attr_map) = self.watch_list.lock().unwrap().get_mut(current_device) {
-                attr_map.entry(attribute_name).or_insert(None);
+                attr_map
+                    .entry(attribute_name)
+                    .or_insert(AttributeReading::default());
             }
         };
     }
