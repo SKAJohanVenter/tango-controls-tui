@@ -1,14 +1,15 @@
 # tango-controls-tui
 
-TUI to explore tango devices
+TUI to explore Tango devices
 
 ![Features](docs/img/controls.gif)
 
 ## Goals
 
-- A fast, easy to navigate Tango device explorer wihout the need to use a GUI/browser
-
-- Watch attributes change values without having to configure a GUI/browser
+- A fast, easy to navigate Tango device explorer
+- Watch attributes change values
+- Easily run in k8s
+- Remove the requirement of a browser/GUI to explore devices and attribute values
 
 ## Limitations
 
