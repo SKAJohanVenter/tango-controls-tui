@@ -11,12 +11,6 @@ TUI to explore Tango devices
 - Easily run in k8s
 - Remove the requirement of a browser/GUI to explore devices and attribute values
 
-## Limitations
-
-- Not all attribute types are able to be displayed in the watchlist.
-- Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly
-- Events are not supported
-
 ## Features
 
 - Browse the running Tango devices in a tree structure
@@ -29,6 +23,18 @@ TUI to explore Tango devices
     - Description
 - Add an attribute to the watchlist
     - The attribute will be polled and it's value displayed
+
+## TODO
+- [x] Watch attributes
+- [ ] Add tests
+- [ ] Add ability to remove attribute from watchlist
+- [ ] Execute commands (`void`, `int` and `str` parameter types)
+
+## Limitations
+
+- Not all attribute types are able to be displayed in the watchlist.
+- Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly
+- Events are not supported
 
 ## Compiling
 
