@@ -6,15 +6,15 @@ TUI to explore tango devices
 
 ## Goals
 
-- A fast, easy to navigate Tango device explorer wihout the need to use a GUI/browser.
+- A fast, easy to navigate Tango device explorer wihout the need to use a GUI/browser
 
-- Watch attributes change values without having to configure a GUI/browser.
+- Watch attributes change values without having to configure a GUI/browser
 
 ## Limitations
 
 - Not all attribute types are able to be displayed in the watchlist.
-- Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly .
-- Events are not supported.
+- Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly
+- Events are not supported
 
 ## Features
 
