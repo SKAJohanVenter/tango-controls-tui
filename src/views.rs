@@ -36,14 +36,16 @@ impl Default for TabChoice {
 pub type AttributeReadings = BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeReading>>;
 
 #[derive(Debug, Default)]
-pub struct SharedViewState {
+pub struct SharedViewState<'a> {
     pub tango_host: Option<String>,
     pub current_selected_device: Option<String>,
     pub watch_list: Arc<Mutex<AttributeReadings>>,
     pub current_tab: TabChoice,
+    pub current_view_ix: usize,
+    pub tango_devices_lookup: TangoDevicesLookup<'a>,
 }
 
-impl SharedViewState {
+impl SharedViewState<'_> {
     pub fn add_watch_attribute(&mut self, attribute_name: String) {
         if let Some(current_device) = &self.current_selected_device {
             // Add the device if not present
@@ -74,6 +76,12 @@ impl SharedViewState {
                     self.watch_list.lock().unwrap().remove(current_device);
                 }
             }
+        }
+    }
+    pub fn toggle_current_view(&mut self) {
+        match self.current_view_ix {
+            0 => self.current_view_ix = 1,
+            _ => self.current_view_ix = 0,
         }
     }
 }
@@ -257,7 +265,6 @@ pub trait Draw {
     fn handle_event(
         &mut self,
         _key_event: &KeyEvent,
-        _tango_devices_lookup: &TangoDevicesLookup,
         _shared_view_state: &mut SharedViewState,
     ) -> usize {
         0

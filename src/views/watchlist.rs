@@ -52,14 +52,12 @@ impl AttributeReading {
 
 #[derive(Default, Debug)]
 pub struct ViewWatchList {
-    id: usize,
     stateful_table: TableState,
 }
 
 impl ViewWatchList {
-    pub fn new(id: usize) -> ViewWatchList {
+    pub fn new() -> ViewWatchList {
         ViewWatchList {
-            id,
             stateful_table: TableState::default(),
         }
     }
@@ -142,7 +140,7 @@ impl Draw for ViewWatchList {
 
 impl From<usize> for ViewWatchList {
     fn from(_item: usize) -> Self {
-        ViewWatchList::new(1)
+        ViewWatchList::new()
     }
 }
 

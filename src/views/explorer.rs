@@ -27,7 +27,6 @@ enum DeviceDisplay {
 }
 
 pub struct ViewExplorerHome<'a> {
-    id: usize,
     stateful_tree: StatefulTree<'a>,
     focus: Focus,
     stateful_table: TableState,
@@ -36,9 +35,8 @@ pub struct ViewExplorerHome<'a> {
 }
 
 impl<'a> ViewExplorerHome<'a> {
-    pub fn new(id: usize, tdl: &TangoDevicesLookup<'a>) -> ViewExplorerHome<'a> {
+    pub fn new(tdl: &TangoDevicesLookup<'a>) -> ViewExplorerHome<'a> {
         ViewExplorerHome {
-            id,
             stateful_tree: StatefulTree::with_items(tdl.get_tree_items()),
             focus: Focus::Left,
             stateful_table: TableState::default(),
@@ -314,6 +312,12 @@ impl<'a> ViewExplorerHome<'a> {
     }
 }
 
+impl Into<usize> for ViewExplorerHome<'_> {
+    fn into(self) -> usize {
+        0
+    }
+}
+
 impl Draw for ViewExplorerHome<'_> {
     fn get_view_menu_items(&self, shared_view_state: &mut SharedViewState) -> Vec<MenuOption> {
         let mut items = vec![MenuOption {
@@ -355,7 +359,7 @@ impl Draw for ViewExplorerHome<'_> {
     fn handle_event(
         &mut self,
         key_event: &KeyEvent,
-        tango_devices_lookup: &TangoDevicesLookup,
+        // tango_devices_lookup: &TangoDevicesLookup,
         shared_view_state: &mut SharedViewState,
     ) -> usize {
         if self.focus == Focus::Left {
@@ -371,7 +375,7 @@ impl Draw for ViewExplorerHome<'_> {
             let family_ix = selected[1];
             let member_ix = selected[2];
 
-            if let Some(domain) = tango_devices_lookup.get_by_ix(domain_ix) {
+            if let Some(domain) = shared_view_state.tango_devices_lookup.get_by_ix(domain_ix) {
                 if let Some(family) = domain.get_by_ix(family_ix) {
                     if let Some(member) = family.get_by_ix(member_ix) {
                         shared_view_state.current_selected_device =
@@ -412,26 +416,6 @@ impl Draw for ViewExplorerHome<'_> {
 
 impl<'a> From<usize> for ViewExplorerHome<'a> {
     fn from(_item: usize) -> Self {
-        ViewExplorerHome::new(0, &TangoDevicesLookup::default())
+        ViewExplorerHome::new(&TangoDevicesLookup::default())
     }
-}
-
-impl<'a> Into<usize> for ViewExplorerHome<'a> {
-    fn into(self) -> usize {
-        0
-    }
-}
-
-#[test]
-fn test_exporer<'a>() {
-    let id: usize = 0;
-    let ve: ViewExplorerHome = id.into();
-    assert_eq!(ve.id, 0);
-
-    let id: usize = 5;
-    let ve: ViewExplorerHome = id.into();
-    assert_eq!(ve.id, 0);
-
-    let id: usize = ve.into();
-    assert_eq!(id, 0);
 }
