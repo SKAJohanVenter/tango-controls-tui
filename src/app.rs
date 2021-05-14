@@ -1,11 +1,11 @@
 use crate::views::explorer::ViewExplorerHome;
 use crate::views::watchlist::ViewWatchList;
-use crate::views::{Draw, SharedViewState, TabChoice, View};
+use crate::views::{Draw, SharedViewState, View};
 use crate::{tango_utils::TangoDevicesLookup, views::AttributeReadings};
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
-use std::env;
+use std::{collections::HashMap, env};
 use tui::{backend::Backend, Frame};
 #[derive(Default)]
 pub struct App<'a> {
@@ -13,7 +13,7 @@ pub struct App<'a> {
     pub should_quit: bool,
     pub update_tango_device_list: bool,
     pub enhanced_graphics: bool,
-    pub views: Vec<View<'a>>,
+    pub views: HashMap<String, View<'a>>,
     pub shared_view_state: SharedViewState<'a>,
 }
 
@@ -24,7 +24,7 @@ impl<'a> App<'a> {
             should_quit: false,
             update_tango_device_list: true,
             enhanced_graphics,
-            views: vec![],
+            views: HashMap::new(),
             shared_view_state: SharedViewState::default(),
         };
 
@@ -35,14 +35,17 @@ impl<'a> App<'a> {
 
         match TangoDevicesLookup::build() {
             Ok(tdl) => {
-                app.views.push(View::Explorer(ViewExplorerHome::new(&tdl)));
+                let explorer_view = View::Explorer(ViewExplorerHome::new(&tdl));
+                app.shared_view_state.current_view = explorer_view.to_string();
+                app.views.insert(explorer_view.to_string(), explorer_view);
                 app.shared_view_state.tango_devices_lookup = tdl;
             }
             Err(_) => {
                 panic!("Could not get Tango devices")
             }
         };
-        app.views.push(View::WatchList(ViewWatchList::new()));
+        let watchlist_view = View::WatchList(ViewWatchList::new());
+        app.views.insert(watchlist_view.to_string(), watchlist_view);
         app
     }
 
@@ -56,7 +59,7 @@ impl<'a> App<'a> {
 
         let current_view = self
             .views
-            .get_mut(self.shared_view_state.current_view_ix)
+            .get_mut(&self.shared_view_state.current_view)
             .unwrap();
         match current_view {
             View::Explorer(eh) => eh.handle_event(key_event, &mut self.shared_view_state),
@@ -67,16 +70,15 @@ impl<'a> App<'a> {
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) {
         let view = self
             .views
-            .get(self.shared_view_state.current_view_ix)
+            .get(&self.shared_view_state.current_view)
             .unwrap();
+        self.shared_view_state.current_view = view.to_string();
         match view {
             View::Explorer(eh) => {
-                self.shared_view_state.current_tab = TabChoice::Explorer;
-                eh.draw(f, &mut self.shared_view_state);
+                eh.draw(f, &mut self.shared_view_state, view.into());
             }
             View::WatchList(wl) => {
-                self.shared_view_state.current_tab = TabChoice::WatchList;
-                wl.draw(f, &mut self.shared_view_state);
+                wl.draw(f, &mut self.shared_view_state, view.into());
             }
         }
     }
