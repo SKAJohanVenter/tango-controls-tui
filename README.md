@@ -4,13 +4,6 @@ TUI to explore Tango devices
 
 ![Features](docs/img/controls.gif)
 
-## Goals
-
-- A fast, easy to navigate Tango device explorer
-- Watch attributes change values
-- Easily run in k8s
-- Remove the requirement of a browser/GUI to explore devices and attribute values
-
 ## Features
 
 - Browse the running Tango devices in a tree structure
@@ -20,21 +13,35 @@ TUI to explore Tango devices
     - Type Out
 - List the device attributes
     - Name
+    - Type
+    - Format
     - Description
 - Add an attribute to the watchlist
-    - The attribute will be polled and it's value displayed
-
-## TODO
-- [x] Watch attributes
-- [ ] Add tests
-- [ ] Add ability to remove attribute from watchlist
-- [ ] Execute commands (`void`, `int` and `str` parameter types)
+    - The attribute will be polled and its value displayed
 
 ## Limitations
 
 - Not all attribute types are able to be displayed in the watchlist.
 - Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly
 - Events are not supported
+
+## Known Issues
+
+- When running in some environments where stderr is redirected to stdout you may get some rendering artifacts of error messages.
+  - Workaround: Specify a log file E.g `tango-controls-tui -l logile.log`
+
+## Project Goals
+
+- A fast, easy to navigate Tango device explorer
+- Watch attributes change values
+- Easily run in k8s
+- Run in a terminal. No need to set up GUIs/Browser interfaces
+
+## TODO
+- [x] Watch attributes
+- [ ] Add tests
+- [ ] Add ability to remove attribute from watchlist
+- [ ] Execute commands (`void`, `int` and `str` parameter types)
 
 ## Compiling
 
