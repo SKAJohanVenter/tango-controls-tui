@@ -1,6 +1,15 @@
+use log::error;
 use std::{collections::BTreeMap, error::Error};
-use tango_client::{AttributeData, AttributeInfo, CommandInfo, DatabaseProxy, DeviceProxy};
+use tango_client::{
+    AttrDataFormat, AttrValue, AttributeData, AttributeInfo, CommandInfo, DatabaseProxy,
+    DeviceProxy,
+};
 use tui_tree_widget::TreeItem;
+
+pub struct DeviceAttribute {
+    pub attribute_info: AttributeInfo,
+    pub attribute_data: Option<AttributeData>,
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct Member {
@@ -166,22 +175,94 @@ impl<'a> TangoDevicesLookup<'a> {
 pub fn read_attribute(
     device_name: &str,
     attribute_name: &str,
-) -> Result<AttributeData, Box<dyn Error>> {
+) -> Result<Option<AttributeData>, Box<dyn Error>> {
     let mut dp = DeviceProxy::new(device_name)?;
-    let value = dp.read_attribute(attribute_name)?;
-    Ok(value)
+    // let value = dp.read_attribute(attribute_name)?;
+    let attribute_data = match dp.read_attribute(&attribute_name) {
+        Ok(ad) => Some(ad),
+        Err(err) => {
+            error!(
+                "Reading conversion error for {}/{}: {}",
+                device_name, attribute_name, err
+            );
+            None
+        }
+    };
+    Ok(attribute_data)
 }
 
-pub fn get_attribute_list(device_name: &str) -> Result<Vec<AttributeInfo>, Box<dyn Error>> {
-    let dp = DeviceProxy::new(device_name)?;
+pub fn get_attribute_list(device_name: &str) -> Result<Vec<DeviceAttribute>, Box<dyn Error>> {
+    let mut dp = DeviceProxy::new(device_name)?;
     let attributes = dp.attribute_list_query()?;
-    Ok(attributes)
+    let mut device_attributes: Vec<DeviceAttribute> = Vec::new();
+
+    for attr in attributes {
+        let attribute_data = match dp.read_attribute(&attr.name) {
+            Ok(ad) => Some(ad),
+            Err(err) => {
+                error!(
+                    "Reading conversion error for {}/{}: {}",
+                    device_name, attr.name, err
+                );
+                None
+            }
+        };
+
+        let da: DeviceAttribute = DeviceAttribute {
+            attribute_data: attribute_data,
+            attribute_info: attr,
+        };
+        device_attributes.push(da);
+    }
+    Ok(device_attributes)
 }
 
 pub fn get_command_list(device_name: &str) -> Result<Vec<CommandInfo>, Box<dyn Error>> {
     let dp = DeviceProxy::new(device_name)?;
     let attributes = dp.command_list_query()?;
     Ok(attributes)
+}
+
+pub fn display_attribute_type(attr_data_option: Option<AttributeData>) -> String {
+    match attr_data_option {
+        None => "N/A".to_string(),
+        Some(attr_data) => match attr_data.data {
+            AttrValue::Boolean(_) => "Boolean".to_string(),
+            AttrValue::UChar(_) => "UChar".to_string(),
+            AttrValue::Short(_) => "Short".to_string(),
+            AttrValue::UShort(_) => "UShort".to_string(),
+            AttrValue::Long(_) => "Long".to_string(),
+            AttrValue::ULong(_) => "ULong".to_string(),
+            AttrValue::Long64(_) => "Long64".to_string(),
+            AttrValue::ULong64(_) => "ULong64".to_string(),
+            AttrValue::Float(_) => "Float".to_string(),
+            AttrValue::Double(_) => "Double".to_string(),
+            AttrValue::String(_) => "String".to_string(),
+            AttrValue::State(_) => "State".to_string(),
+            AttrValue::Encoded(_) => "Encoded".to_string(),
+            AttrValue::BooleanArray(_) => "BooleanArray".to_string(),
+            AttrValue::UCharArray(_) => "UCharArray".to_string(),
+            AttrValue::ShortArray(_) => "ShortArray".to_string(),
+            AttrValue::UShortArray(_) => "UShortArray".to_string(),
+            AttrValue::LongArray(_) => "LongArray".to_string(),
+            AttrValue::ULongArray(_) => "ULongArray".to_string(),
+            AttrValue::Long64Array(_) => "Long64Array".to_string(),
+            AttrValue::ULong64Array(_) => "ULong64Array".to_string(),
+            AttrValue::FloatArray(_) => "FloatArray".to_string(),
+            AttrValue::DoubleArray(_) => "DoubleArray".to_string(),
+            AttrValue::StringArray(_) => "StringArray".to_string(),
+            AttrValue::StateArray(_) => "StateArray".to_string(),
+            AttrValue::EncodedArray(_) => "EncodedArray".to_string(),
+        },
+    }
+}
+
+pub fn display_attribute_format(attr_type: AttrDataFormat) -> String {
+    match attr_type {
+        AttrDataFormat::Scalar => "Scalar".to_string(),
+        AttrDataFormat::Spectrum => "Spectrum".to_string(),
+        AttrDataFormat::Image => "Image".to_string(),
+    }
 }
 
 #[test]

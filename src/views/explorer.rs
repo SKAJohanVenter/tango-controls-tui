@@ -1,4 +1,7 @@
-use crate::tango_utils::{get_attribute_list, get_command_list, GetTreeItems};
+use crate::tango_utils::{
+    display_attribute_format, display_attribute_type, get_attribute_list, get_command_list,
+    GetTreeItems,
+};
 use crate::views::{Draw, MenuOption, SharedViewState};
 // use tui-tree-widget::
 use crate::stateful_tree::StatefulTree;
@@ -107,8 +110,13 @@ impl<'a> ViewExplorerHome<'a> {
                         Ok(attributes) => {
                             for attr in attributes {
                                 self.stateful_table_items.push((
-                                    format!("{}", attr.name),
-                                    Row::new(vec![attr.name, attr.description]),
+                                    format!("{}", attr.attribute_info.name),
+                                    Row::new(vec![
+                                        attr.attribute_info.name,
+                                        display_attribute_type(attr.attribute_data),
+                                        display_attribute_format(attr.attribute_info.data_format),
+                                        attr.attribute_info.description,
+                                    ]),
                                 ));
                             }
                         }
@@ -156,7 +164,7 @@ impl<'a> ViewExplorerHome<'a> {
                 vec!["Name", "Type In", "Type Out"]
             }
             DeviceDisplay::Attributes => {
-                vec!["Name", "Type", "Watched"]
+                vec!["Name", "Type", "Format", "Description"]
             }
             DeviceDisplay::Empty => {
                 vec![]
@@ -175,9 +183,16 @@ impl<'a> ViewExplorerHome<'a> {
                 ]
             }
             DeviceDisplay::Attributes => {
-                let size_a = area.width / 2 + 1;
-                let size_b = area.width / 2;
-                vec![Constraint::Length(size_a), Constraint::Length(size_b)]
+                let size_a = area.width / 3;
+                let size_b = area.width / 6;
+                let size_c = area.width / 6;
+                let size_d = area.width / 3;
+                vec![
+                    Constraint::Length(size_a),
+                    Constraint::Length(size_b),
+                    Constraint::Length(size_c),
+                    Constraint::Length(size_d),
+                ]
             }
             DeviceDisplay::Empty => {
                 vec![]
