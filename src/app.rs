@@ -5,6 +5,7 @@ use crate::{tango_utils::TangoDevicesLookup, views::AttributeReadings};
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
+use std::error::Error;
 use std::{collections::HashMap, env};
 use tui::{backend::Backend, Frame};
 #[derive(Default)]
@@ -18,7 +19,7 @@ pub struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    pub fn new(title: &'a str, enhanced_graphics: bool) -> App<'a> {
+    pub fn new(title: &'a str, enhanced_graphics: bool) -> Result<App<'a>, Box<dyn Error>> {
         let mut app = App {
             title,
             should_quit: false,
@@ -40,13 +41,13 @@ impl<'a> App<'a> {
                 app.views.insert(explorer_view.to_string(), explorer_view);
                 app.shared_view_state.tango_devices_lookup = tdl;
             }
-            Err(_) => {
-                panic!("Could not get Tango devices")
+            Err(err) => {
+                 return Err(err);
             }
         };
         let watchlist_view = View::WatchList(ViewWatchList::new());
         app.views.insert(watchlist_view.to_string(), watchlist_view);
-        app
+        Ok(app)
     }
 
     pub fn handle_event(&mut self, key_event: &KeyEvent) {

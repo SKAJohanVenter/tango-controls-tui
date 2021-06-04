@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = App::new("Tango Controls TUI", enhanced_graphics);
+    let mut app = App::new("Tango Controls TUI", enhanced_graphics)?;
 
     // Update the watched attributes in a separate thread
     let watch_list = Arc::clone(&app.shared_view_state.watch_list);
