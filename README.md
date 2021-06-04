@@ -63,17 +63,29 @@ The binary will be available in `./target/release/tango-controls-tui`
 
 ## Docker
 
-## Build docker
+### Development in a docker image
+
+```
+docker build . -t tui_dev:latest -f ./Dockerfile_dev
+docker run --rm -it -v "$(pwd)":/workspace  --env="TANGO_HOST=<TANGO_HOST>:10000" tui_dev:latest /bin/bash
+
+root@6a00adac91ad:/tango-controls-tui# cargo clean
+root@6a00adac91ad:/tango-controls-tui# cargo build
+...
+root@6a00adac91ad:/tango-controls-tui# ./target/debug/tango-controls-tui --help
+```
+
+### Build docker
 
 ```
 git clone git@github.com:SKAJohanVenter/tango-controls-tui.git
 cd tango-controls-tui
-DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0  docker build . -t <TAG_NAME> -f ./Dockerfile
+docker build . -t <TAG_NAME> -f ./Dockerfile
 ```
 
 ### Run with `kubectl`
 
 ```
-kubectl run tui --rm  -it --image=ajohanv/tango-controls-tui:0.0.1-beta-0 --restart=Never -n <NAMESPACE> --env="TANGO_HOST=<TANGO_HOST>:10000"  /bin/bash
+kubectl run tui --rm  -it --image=ajohanv/tango-controls-tui:0.0.1-beta-0 --restart=Never -n <NAMESPACE> --env="TANGO_HOST=<TANGO_HOST>:10000" /bin/bash
 root@tui3:/# tango-controls-tui
 ```
