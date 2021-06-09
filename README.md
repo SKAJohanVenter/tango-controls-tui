@@ -86,6 +86,6 @@ docker build . -t <TAG_NAME> -f ./Dockerfile
 ### Run with `kubectl`
 
 ```
-kubectl run tui --rm  -it --image=ajohanv/tango-controls-tui:0.0.1-beta-0 --restart=Never -n <NAMESPACE> --env="TANGO_HOST=<TANGO_HOST>:10000" /bin/bash
-root@tui3:/# tango-controls-tui
+kubectl run tui --rm  -it --image=ajohanv/tango-controls-tui:0.0.1 --restart=Never -n <NAMESPACE> --env="TANGO_HOST=<TANGO_HOST>:10000" /bin/bash
+root@tui3:/# tango-controls-tui -l t.log
 ```
