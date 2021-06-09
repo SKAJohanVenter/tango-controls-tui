@@ -42,7 +42,7 @@ impl<'a> App<'a> {
                 app.shared_view_state.tango_devices_lookup = tdl;
             }
             Err(err) => {
-                 return Err(err);
+                return Err(err);
             }
         };
         let watchlist_view = View::WatchList(ViewWatchList::new());

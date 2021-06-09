@@ -106,7 +106,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = App::new("Tango Controls TUI", enhanced_graphics)?;
+    let mut app = match App::new("Tango Controls TUI", enhanced_graphics) {
+        Ok(the_app) => the_app,
+        Err(err) => {
+            disable_raw_mode()?;
+            execute!(std::io::stdout(), DisableMouseCapture)?;
+            return Err(err);
+        }
+    };
 
     // Update the watched attributes in a separate thread
     let watch_list = Arc::clone(&app.shared_view_state.watch_list);
