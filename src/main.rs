@@ -8,7 +8,7 @@ mod views;
 use app::App;
 use clap;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode, KeyEvent},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnableLineWrap, EnterAlternateScreen},
 };
@@ -31,12 +31,14 @@ use std::{
     time::{Duration, Instant},
 };
 use tui::{backend::CrosstermBackend, Terminal};
+use uuid::Uuid;
 use views::AttributeReadings;
 
-enum Event<I> {
-    Input(I),
+pub enum Event {
+    Input(KeyEvent),
     Tick,
     UpdateTangoDeviceReadings(AttributeReadings),
+    UpdateCommandResult(Uuid, String),
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -80,6 +82,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Setup     handling
     let (tx, rx) = mpsc::channel();
     let tx_watch_list = tx.clone();
+    let tx_commands = tx.clone();
 
     let tick_rate_duration = Duration::from_millis(tick_rate);
 
@@ -106,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = match App::new("Tango Controls TUI", enhanced_graphics) {
+    let mut app = match App::new("Tango Controls TUI", enhanced_graphics, tx_commands) {
         Ok(the_app) => the_app,
         Err(err) => {
             disable_raw_mode()?;
@@ -156,6 +159,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Event::UpdateTangoDeviceReadings(updated_device_value_map) => {
                 app.update_device_attr_map(updated_device_value_map);
+            }
+            Event::UpdateCommandResult(uuid, result) => {
+                if let Some(mut executed_command) = app
+                    .shared_view_state
+                    .executed_commands
+                    .executed_commands
+                    .get_mut(&uuid)
+                {
+                    executed_command.result = result;
+                }
             }
         }
 

@@ -1,0 +1,272 @@
+// use crate::tango_utils;
+use crate::{
+    tango_utils,
+    views::{Draw, SharedViewState},
+    Event,
+};
+use log::error;
+use uuid::Uuid;
+// use log::error;
+use crossterm::event::{KeyCode, KeyEvent};
+use std::{
+    collections::{BTreeMap},
+    convert::{From, Into},
+    sync::mpsc,
+    thread,
+};
+use tui::{
+    backend::Backend,
+    layout::Constraint,
+    layout::Direction,
+    layout::Layout,
+    layout::Rect,
+    style::{Color, Style},
+    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, TableState},
+    Frame,
+};
+
+use super::View;
+
+#[derive(Debug)]
+enum Focus {
+    Input,
+    Messages,
+}
+
+impl Default for Focus {
+    fn default() -> Self {
+        Focus::Input
+    }
+}
+
+#[derive(Debug)]
+pub struct ExecutedCommand {
+    pub command: String,
+    pub parameter: String,
+    pub result: String,
+    pub device_name: String,
+}
+
+#[derive(Debug)]
+pub struct ExecutedCommands {
+    pub executed_commands: BTreeMap<Uuid, ExecutedCommand>,
+    pub current_command: Option<String>,
+    pub current_parameter: Option<String>,
+    pub tx_commands: mpsc::Sender<Event>,
+    pub current_device: Option<String>,
+}
+
+impl ExecutedCommands {
+    pub fn new(tx_commands: mpsc::Sender<Event>) -> Self {
+        Self {
+            executed_commands: BTreeMap::default(),
+            current_command: None,
+            current_parameter: None,
+            current_device: None,
+            tx_commands,
+        }
+    }
+
+    pub fn execute_command(&mut self, device_name: String, command: String, parameter: String) {
+        let uuid = Uuid::new_v4();
+        let execute_command = ExecutedCommand {
+            command: command.clone(),
+            parameter: parameter.clone(),
+            device_name: device_name.clone(),
+            result: String::from("In Progress"),
+        };
+        self.executed_commands.insert(uuid.clone(), execute_command);
+
+        let tx_commands = self.tx_commands.clone();
+        thread::spawn(move || {
+            let res = match tango_utils::execute_command(
+                device_name.as_str(),
+                command.as_str(),
+                parameter.as_str(),
+            ) {
+                Ok(command_data) => command_data.to_string(),
+                Err(err) => {
+                    error!("Command Error {}", err);
+                    String::from("Error, see log")
+                }
+            };
+            match tx_commands.send(Event::UpdateCommandResult(uuid, res)) {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("Could not send result {}", err)
+                }
+            }
+        });
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct ViewCommand {
+    stateful_table: TableState,
+    focus: Focus,
+    input: String,
+}
+
+impl ViewCommand {
+    pub fn new() -> ViewCommand {
+        ViewCommand {
+            stateful_table: TableState::default(),
+            focus: Focus::Input,
+            input: String::from("< Enter parameter >"),
+        }
+    }
+
+    fn handle_event(&mut self, key_event: &KeyEvent, shared_view_state: &mut SharedViewState) {
+        let paramater_string = String::from("< Enter parameter >");
+        match key_event.code {
+            KeyCode::Up => match self.focus {
+                Focus::Input => self.focus = Focus::Messages,
+                Focus::Messages => {
+                    self.focus = Focus::Input;
+                }
+            },
+            KeyCode::Left | KeyCode::Right => {
+                if self.input == paramater_string {
+                    self.input.clear();
+                }
+            }
+            KeyCode::Down => match self.focus {
+                Focus::Input => {
+                    if self.input == paramater_string {
+                        self.input.clear();
+                    }
+                    self.focus = Focus::Messages;
+                }
+                Focus::Messages => self.focus = Focus::Input,
+            },
+            KeyCode::Enter => match self.focus {
+                Focus::Input => {
+                    if self.input == paramater_string {
+                        self.input.clear();
+                    }
+                    shared_view_state.current_view = View::ConfirmCommand;
+                    shared_view_state.executed_commands.current_parameter =
+                        Some(self.input.clone());
+                    shared_view_state.executed_commands.current_device =
+                        shared_view_state.selected_device.clone();
+                }
+                Focus::Messages => {}
+            },
+            KeyCode::Char(c) => match self.focus {
+                Focus::Input => {
+                    if self.input == paramater_string {
+                        self.input.clear();
+                    }
+                    self.input.push(c);
+                }
+                Focus::Messages => {}
+            },
+            KeyCode::Backspace => match self.focus {
+                Focus::Input => {
+                    if self.input == paramater_string {
+                        self.input.clear();
+                    }
+                    self.input.pop();
+                }
+                Focus::Messages => {}
+            },
+            _ => {}
+        }
+    }
+
+    fn draw_table<B: Backend>(
+        &self,
+        f: &mut Frame<B>,
+        area: Rect,
+        shared_view_state: &mut SharedViewState,
+    ) {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            // .margin(2)
+            .constraints([Constraint::Length(3), Constraint::Min(1)].as_ref())
+            .split(area);
+
+        let title = match &shared_view_state.selected_device {
+            Some(dev) => match shared_view_state.executed_commands.current_command.clone() {
+                Some(comm) => format!(" Device: {} - Command: {} ", dev, comm),
+                None => format!("Device: {} - Command: <Not Selected>", dev),
+            },
+            None => "Device and Command not selected".to_string(),
+        };
+
+        let input = Paragraph::new(self.input.as_str())
+            .block(Block::default().borders(Borders::ALL).title(title));
+        match self.focus {
+            Focus::Input => {
+                f.set_cursor(chunks[0].x + self.input.len() as u16 + 1, chunks[0].y + 1);
+            }
+            Focus::Messages => {}
+        };
+
+        let mut rows: Vec<Row> = Vec::new();
+        for (_, executed_command) in &shared_view_state.executed_commands.executed_commands {
+            rows.push(Row::new(vec![
+                Cell::from(executed_command.device_name.clone()),
+                Cell::from(executed_command.command.clone()),
+                Cell::from(executed_command.result.clone()),
+            ]))
+        }
+
+        let size_a = area.width / 3;
+        let size_b = area.width / 3;
+        let size_c = area.width / 3 + 1;
+        let widths = vec![
+            Constraint::Length(size_a),
+            Constraint::Length(size_b),
+            Constraint::Length(size_c),
+        ];
+
+        let table = Table::new(rows)
+            .style(Style::default().fg(Color::White))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .style(Style::default().fg(Color::White))
+                    .border_type(BorderType::Plain)
+                    .title(" Commands"),
+            )
+            .header(Row::new(vec!["Device", "Command", "Result"]).bottom_margin(1))
+            .widths(&widths)
+            .column_spacing(1);
+
+        f.render_widget(input, chunks[0]);
+        f.render_widget(table, chunks[1]);
+    }
+}
+
+impl Draw for ViewCommand {
+    fn draw_body<B: Backend>(
+        &self,
+        f: &mut Frame<B>,
+        area: Rect,
+        shared_view_state: &mut SharedViewState,
+    ) {
+        self.draw_table(f, area, shared_view_state);
+    }
+
+    fn handle_event(
+        &mut self,
+        key_event: &KeyEvent,
+        shared_view_state: &mut SharedViewState,
+    ) -> usize {
+        self.handle_event(key_event, shared_view_state);
+        2
+    }
+}
+
+impl From<usize> for ViewCommand {
+    fn from(_item: usize) -> Self {
+        ViewCommand::new()
+    }
+}
+
+impl Into<usize> for ViewCommand {
+    fn into(self) -> usize {
+        2
+    }
+}

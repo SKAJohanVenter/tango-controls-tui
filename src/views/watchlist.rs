@@ -157,17 +157,3 @@ impl Into<usize> for ViewWatchList {
         1
     }
 }
-
-#[test]
-fn test_watchlist() {
-    let id: usize = 1;
-    let vwl: ViewWatchList = id.into();
-    assert_eq!(vwl.id, 1);
-
-    let id: usize = 5;
-    let vwl: ViewWatchList = id.into();
-    assert_eq!(vwl.id, 1);
-
-    let id: usize = vwl.into();
-    assert_eq!(id, 1);
-}

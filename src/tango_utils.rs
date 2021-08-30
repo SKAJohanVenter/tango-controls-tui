@@ -1,9 +1,6 @@
 use log::error;
 use std::{collections::BTreeMap, error::Error};
-use tango_client::{
-    AttrDataFormat, AttrValue, AttributeData, AttributeInfo, CommandInfo, DatabaseProxy,
-    DeviceProxy,
-};
+use tango_client::*;
 use tui_tree_widget::TreeItem;
 
 pub struct DeviceAttribute {
@@ -191,6 +188,16 @@ pub fn read_attribute(
     Ok(attribute_data)
 }
 
+pub fn execute_command(
+    device_name: &str,
+    command: &str,
+    parameter: &str,
+) -> Result<CommandData, Box<dyn Error>> {
+    let mut dp = DeviceProxy::new(device_name)?;
+    let res = dp.command_inout(command, CommandData::from_str(parameter))?;
+    Ok(res)
+}
+
 pub fn get_attribute_list(device_name: &str) -> Result<Vec<DeviceAttribute>, Box<dyn Error>> {
     let mut dp = DeviceProxy::new(device_name)?;
     let attributes = dp.attribute_list_query()?;
@@ -311,4 +318,114 @@ fn test_map_build() {
             .device_name,
         "a/d/c"
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_commands() -> Result<(), Box<dyn Error>> {
+        use tango_client::CommandData::*;
+
+        let tango_host = env::var("TANGO_HOST")?;
+
+        let mut dev = DeviceProxy::new(format!("tango://{}/sys/tg_test/1", tango_host).as_str())
+            .expect("Could not proxy to sys/tg_test/1, is a database running on localhost?");
+
+        // let tests = vec![
+        //     ("DevVoid", Void),
+        //     ("DevBoolean", Boolean(true)),
+        //     ("DevShort", Short(-147)),
+        //     ("DevLong", Long(-(1 << 20))),
+        //     ("DevFloat", Float(42.42)),
+        //     ("DevDouble", Double(123.456790123752)),
+        //     ("DevUShort", UShort(137)),
+        //     ("DevULong", ULong(1 << 20)),
+        //     ("DevLong64", Long64(-(1 << 60))),
+        //     ("DevULong64", ULong64(1 << 60)),
+        //     ("DevString", CommandData::from_str("some_str_ing")),
+        //     ("DevVarCharArray", CharArray(vec![1, 5, 7])),
+        //     ("DevVarShortArray", ShortArray(vec![-5, 1, 0])),
+        //     ("DevVarUShortArray", UShortArray(vec![5, 1, 0])),
+        //     ("DevVarLongArray", LongArray(vec![-(1 << 20), 1, 0])),
+        //     ("DevVarULongArray", ULongArray(vec![1 << 30, 1, 0])),
+        //     ("DevVarLong64Array", Long64Array(vec![-(1 << 60), 1, 0])),
+        //     ("DevVarULong64Array", ULong64Array(vec![1 << 60, 1, 0])),
+        //     ("DevVarFloatArray", FloatArray(vec![-42.4, 0.0, 80.123])),
+        //     ("DevVarDoubleArray", DoubleArray(vec![-5.0, 1.0, 0.0])),
+        //     ("DevVarStringArray", StringArray(vec![vec![b'a', b'b'],
+        //                                            vec![b'c'], vec![b'd']])),
+        //     ("DevVarLongStringArray", LongStringArray(vec![-5, 1, 0, 1],
+        //                                               vec![vec![b'a', b'b'], vec![b'c']])),
+        //     ("DevVarDoubleStringArray", DoubleStringArray(vec![-5.0, 1.0, 0.0],
+        //                                                  vec![vec![b'a', b'b'], vec![b'c']])),
+        //     // no test methods for: DevEncoded, DevVarBooleanArray
+        //     ];
+
+        // for (cmd, data) in tests {
+        //     println!("{}    {}", cmd, data);
+        // }
+
+        // DevVoid    <Void>
+        // DevBoolean    true
+        // DevShort    -147
+        // DevLong    -1048576
+        // DevFloat    42.42
+        // DevDouble    123.456790123752
+        // DevUShort    137
+        // DevULong    1048576
+        // DevLong64    -1152921504606846976
+        // DevULong64    1152921504606846976
+        // DevString    some_str_ing
+        // DevVarCharArray    [1, 5, 7]
+        // DevVarShortArray    [-5, 1, 0]
+        // DevVarUShortArray    [5, 1, 0]
+        // DevVarLongArray    [-1048576, 1, 0]
+        // DevVarULongArray    [1073741824, 1, 0]
+        // DevVarLong64Array    [-1152921504606846976, 1, 0]
+        // DevVarULong64Array    [1152921504606846976, 1, 0]
+        // DevVarFloatArray    [-42.4, 0, 80.123]
+        // DevVarDoubleArray    [-5, 1, 0]
+        // DevVarStringArray    [ab, c, d]
+        // DevVarLongStringArray    [-5, 1, 0, 1][ab, c]
+        // DevVarDoubleStringArray    [-5, 1, 0][ab, c]
+
+        let test_strings = vec![
+            ("DevVoid", ""),
+            ("DevBoolean", "true"),
+            ("DevShort", "-147"),
+            ("DevLong", "-1048576"),
+            ("DevFloat", "42.42"),
+            ("DevDouble", "123.456790123752"),
+            ("DevUShort", "137"),
+            ("DevULong", "1048576"),
+            ("DevLong64", "-1152921504606846976"),
+            ("DevULong64", "1152921504606846976"),
+            ("DevString", "some_str_ing"),
+            ("DevVarCharArray", "[1, 5, 7]"),
+            ("DevVarShortArray", "[-5, 1, 0]"),
+            ("DevVarUShortArray", "[5, 1, 0]"),
+            ("DevVarLongArray", "[-1048576, 1, 0]"),
+            ("DevVarULongArray", "[1073741824, 1, 0]"),
+            ("DevVarLong64Array", "[-1152921504606846976, 1, 0]"),
+            ("DevVarULong64Array", "[1152921504606846976, 1, 0]"),
+            ("DevVarFloatArray", "[-42.4, 0, 80.123]"),
+            ("DevVarDoubleArray", "[-5, 1, 0]"),
+            ("DevVarStringArray", "[ab, c, d]"),
+            ("DevVarLongStringArray", "[-5, 1, 0, 1][ab, c]"),
+            ("DevVarDoubleStringArray", "[-5, 1, 0][ab, c]"),
+        ];
+
+        for (cmd, data) in test_strings {
+            println!("Command: {}, Value: {}", cmd, data);
+            let command_data = CommandData::from_str(data);
+            let res = dev.command_inout(cmd, command_data).expect(
+                "Could not execute command on sys/tg_test/1, is \
+                                the TangoTest server running?",
+            );
+            println!("\nResult: {}", res);
+        }
+        Ok(())
+    }
 }

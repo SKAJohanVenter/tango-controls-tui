@@ -1,15 +1,21 @@
+pub mod command;
+pub mod confirm_command;
 pub mod explorer;
 pub mod watchlist;
 
+use command::ViewCommand;
+use confirm_command::ViewConfirmCommand;
 use explorer::ViewExplorerHome;
 use std::collections::BTreeMap;
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use watchlist::ViewWatchList;
 
 use crate::tango_utils::TangoDevicesLookup;
 use crate::views::watchlist::AttributeReading;
+use crate::Event;
 use crossterm::event::KeyEvent;
+use std::hash::Hash;
 use tui::symbols::line::DOUBLE_VERTICAL;
 use tui::{
     backend::Backend,
@@ -20,25 +26,37 @@ use tui::{
     Frame,
 };
 
+use self::command::ExecutedCommands;
 pub type DeviceName = String;
 pub type AttributeName = String;
-
 pub type AttributeReadings = BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeReading>>;
 
 // The SharedViewState is information that are shared between the different tabs
 // and sections within the tab itself.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SharedViewState<'a> {
     pub tango_host: Option<String>,
-    pub current_selected_device: Option<String>,
+    pub selected_device: Option<String>,
     pub watch_list: Arc<Mutex<AttributeReadings>>,
-    pub current_view: String,
+    pub current_view: View,
     pub tango_devices_lookup: TangoDevicesLookup<'a>,
+    pub executed_commands: ExecutedCommands,
 }
 
 impl SharedViewState<'_> {
+    pub fn new(tx_commands: mpsc::Sender<Event>) -> Self {
+        Self {
+            tango_host: None,
+            selected_device: None,
+            watch_list: Arc::default(),
+            current_view: View::Explorer,
+            tango_devices_lookup: TangoDevicesLookup::default(),
+            executed_commands: ExecutedCommands::new(tx_commands),
+        }
+    }
+
     pub fn add_watch_attribute(&mut self, attribute_name: String) {
-        if let Some(current_device) = &self.current_selected_device {
+        if let Some(current_device) = &self.selected_device {
             // Add the device if not present
             self.watch_list
                 .lock()
@@ -55,7 +73,7 @@ impl SharedViewState<'_> {
     }
 
     pub fn _remove_watch_attribute(&mut self, attribute_name: String) {
-        if let Some(current_device) = &self.current_selected_device {
+        if let Some(current_device) = &self.selected_device {
             if let Some(attr_map) = self.watch_list.lock().unwrap().get_mut(current_device) {
                 attr_map.remove(&attribute_name);
             }
@@ -68,42 +86,86 @@ impl SharedViewState<'_> {
         }
     }
     pub fn toggle_current_view(&mut self) {
-        match self.current_view.as_str() {
-            "Explorer" => self.current_view = String::from("Watchlist"),
-            "Watchlist" => self.current_view = String::from("Explorer"),
+        match self.current_view {
+            View::Command => self.current_view = View::Explorer,
+            View::WatchList => self.current_view = View::Command,
+            View::Explorer => self.current_view = View::WatchList,
             _ => panic!("Tab position for {} not defined", self.current_view),
-        };
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Debug)]
+pub enum View {
+    Command,
+    ConfirmCommand,
+    WatchList,
+    Explorer,
+}
+
+impl fmt::Display for View {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            View::Command => write!(f, "Command"),
+            View::ConfirmCommand => write!(f, "ConfirmCommand"),
+            View::WatchList => write!(f, "WatchList"),
+            View::Explorer => write!(f, "Explorer"),
+        }
     }
 }
 
 // #[derive(Debug)]
-pub enum View<'a> {
+pub enum ViewType<'a> {
     Explorer(ViewExplorerHome<'a>),
     WatchList(ViewWatchList),
+    Command(ViewCommand),
+    ConfirmCommand(ViewConfirmCommand),
 }
 
 // The views are stored in a hashmap.
 // The key is `View.to_string()` and the value is the `View`
-impl<'a> fmt::Display for View<'a> {
+impl<'a> fmt::Display for ViewType<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            View::Explorer(_) => {
-                write!(f, "Explorer")
-            }
-            View::WatchList(_) => {
-                write!(f, "Watchlist")
-            }
+            ViewType::Explorer(_) => write!(f, "Explorer"),
+            ViewType::WatchList(_) => write!(f, "Watchlist"),
+            ViewType::Command(_) => write!(f, "Command"),
+            ViewType::ConfirmCommand(_) => write!(f, "Popup"),
         }
     }
 }
 
 // The Into here is used to translate a View into an usize.
 // The usize is used to determine which tab to select
-impl Into<usize> for &View<'_> {
+impl Into<usize> for &ViewType<'_> {
     fn into(self) -> usize {
         match self {
-            View::Explorer(_) => 0,
-            View::WatchList(_) => 1,
+            ViewType::Explorer(_) => 0,
+            ViewType::WatchList(_) => 1,
+            ViewType::Command(_) => 2,
+            ViewType::ConfirmCommand(_) => 3,
+        }
+    }
+}
+
+impl From<ViewType<'_>> for View {
+    fn from(val: ViewType<'_>) -> Self {
+        match val {
+            ViewType::Explorer(_) => View::Explorer,
+            ViewType::WatchList(_) => View::WatchList,
+            ViewType::Command(_) => View::Command,
+            ViewType::ConfirmCommand(_) => View::ConfirmCommand,
+        }
+    }
+}
+
+impl From<&ViewType<'_>> for View {
+    fn from(val: &ViewType<'_>) -> Self {
+        match val {
+            ViewType::Explorer(_) => View::Explorer,
+            ViewType::WatchList(_) => View::WatchList,
+            ViewType::Command(_) => View::Command,
+            ViewType::ConfirmCommand(_) => View::ConfirmCommand,
         }
     }
 }
@@ -230,7 +292,7 @@ pub trait Draw {
     }
 
     fn draw_tabs<B: Backend>(&self, f: &mut Frame<B>, area: Rect, tab_index: usize) {
-        let tab_titles = ["Explorer", "Watchlist"]
+        let tab_titles = ["Explorer", "Watchlist", "Command"]
             .iter()
             .cloned()
             .map(Spans::from)

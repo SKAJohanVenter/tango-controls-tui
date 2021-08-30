@@ -17,6 +17,8 @@ use tui::{
 };
 use tui_tree_widget::Tree;
 
+use super::View;
+
 #[derive(PartialEq)]
 enum Focus {
     Left,
@@ -78,7 +80,7 @@ impl<'a> ViewExplorerHome<'a> {
         self.stateful_table_items.clear();
         match device_display {
             DeviceDisplay::Commands => {
-                if let Some(current_device) = shared_view_state.current_selected_device.clone() {
+                if let Some(current_device) = shared_view_state.selected_device.clone() {
                     match get_command_list(current_device.as_str()) {
                         Ok(commands) => {
                             for comm in commands {
@@ -105,7 +107,7 @@ impl<'a> ViewExplorerHome<'a> {
                 }
             }
             DeviceDisplay::Attributes => {
-                if let Some(current_device) = shared_view_state.current_selected_device.clone() {
+                if let Some(current_device) = shared_view_state.selected_device.clone() {
                     match get_attribute_list(current_device.as_str()) {
                         Ok(attributes) => {
                             for attr in attributes {
@@ -143,32 +145,20 @@ impl<'a> ViewExplorerHome<'a> {
         area: Rect,
         shared_view_state: &mut SharedViewState,
     ) {
-        let selected_device = match shared_view_state.current_selected_device.clone() {
+        let selected_device = match shared_view_state.selected_device.clone() {
             Some(device_name) => device_name,
             None => String::from(""),
         };
         let selected_device = match self.device_display {
-            DeviceDisplay::Commands => {
-                format!(" Commands, selected: {}", selected_device)
-            }
-            DeviceDisplay::Attributes => {
-                format!(" Attributes, selected: {}", selected_device)
-            }
-            DeviceDisplay::Empty => {
-                format!(" Selected: {}", selected_device)
-            }
+            DeviceDisplay::Commands => format!(" Commands, selected: {}", selected_device),
+            DeviceDisplay::Attributes => format!(" Attributes, selected: {}", selected_device),
+            DeviceDisplay::Empty => format!(" Selected: {}", selected_device),
         };
 
         let header = match self.device_display {
-            DeviceDisplay::Commands => {
-                vec!["Name", "Type In", "Type Out"]
-            }
-            DeviceDisplay::Attributes => {
-                vec!["Name", "Type", "Format", "Description"]
-            }
-            DeviceDisplay::Empty => {
-                vec![]
-            }
+            DeviceDisplay::Commands => vec!["Name", "Type In", "Type Out"],
+            DeviceDisplay::Attributes => vec!["Name", "Type", "Format", "Description"],
+            DeviceDisplay::Empty => vec![],
         };
 
         let widths = match self.device_display {
@@ -194,9 +184,7 @@ impl<'a> ViewExplorerHome<'a> {
                     Constraint::Length(size_d),
                 ]
             }
-            DeviceDisplay::Empty => {
-                vec![]
-            }
+            DeviceDisplay::Empty => vec![],
         };
 
         // Column widths
@@ -235,7 +223,7 @@ impl<'a> ViewExplorerHome<'a> {
             }
             KeyCode::Right => {
                 self.stateful_tree.open();
-                if shared_view_state.current_selected_device.is_some() {
+                if shared_view_state.selected_device.is_some() {
                     self.focus = Focus::Right;
                     self.device_display = DeviceDisplay::Attributes;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
@@ -246,24 +234,22 @@ impl<'a> ViewExplorerHome<'a> {
             }
             KeyCode::Down => {
                 self.stateful_tree.next();
-                shared_view_state.current_selected_device = None;
+                shared_view_state.selected_device = None;
                 self.populate_device_items(shared_view_state, DeviceDisplay::Empty);
             }
             KeyCode::Up => {
                 self.stateful_tree.previous();
-                shared_view_state.current_selected_device = None;
+                shared_view_state.selected_device = None;
                 self.populate_device_items(shared_view_state, DeviceDisplay::Empty);
             }
             KeyCode::Char('c') => {
-                if shared_view_state.current_selected_device.is_some() && self.focus == Focus::Right
-                {
+                if shared_view_state.selected_device.is_some() && self.focus == Focus::Right {
                     self.populate_device_items(shared_view_state, DeviceDisplay::Commands);
                     self.stateful_table.select(Some(0));
                 }
             }
             KeyCode::Char('a') => {
-                if shared_view_state.current_selected_device.is_some() && self.focus == Focus::Right
-                {
+                if shared_view_state.selected_device.is_some() && self.focus == Focus::Right {
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
                     self.stateful_table.select(Some(0));
                 }
@@ -310,14 +296,25 @@ impl<'a> ViewExplorerHome<'a> {
                     }
                 }
             }
+            KeyCode::Char('x') => {
+                if self.device_display == DeviceDisplay::Commands {
+                    if let Some(current_position) = self.stateful_table.selected() {
+                        if let Some(attr_row) = self.stateful_table_items.get(current_position) {
+                            shared_view_state.executed_commands.current_command =
+                                Some(attr_row.0.clone());
+                            shared_view_state.current_view = View::Command;
+                        }
+                    }
+                }
+            }
             KeyCode::Char('c') => {
-                if shared_view_state.current_selected_device.is_some() {
+                if shared_view_state.selected_device.is_some() {
                     self.device_display = DeviceDisplay::Commands;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Commands);
                 }
             }
             KeyCode::Char('a') => {
-                if shared_view_state.current_selected_device.is_some() {
+                if shared_view_state.selected_device.is_some() {
                     self.device_display = DeviceDisplay::Attributes;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
                 }
@@ -340,7 +337,7 @@ impl Draw for ViewExplorerHome<'_> {
             description: "Navigate tree".to_string(),
         }];
 
-        if shared_view_state.current_selected_device.is_some()
+        if shared_view_state.selected_device.is_some()
             && self.focus == Focus::Right
             && self.device_display == DeviceDisplay::Commands
         {
@@ -350,7 +347,7 @@ impl Draw for ViewExplorerHome<'_> {
             });
         }
 
-        if shared_view_state.current_selected_device.is_some()
+        if shared_view_state.selected_device.is_some()
             && self.focus == Focus::Right
             && self.device_display == DeviceDisplay::Attributes
         {
@@ -359,7 +356,7 @@ impl Draw for ViewExplorerHome<'_> {
                 description: "Command List".to_string(),
             });
         }
-        if shared_view_state.current_selected_device.is_some()
+        if shared_view_state.selected_device.is_some()
             && self.focus == Focus::Right
             && self.device_display == DeviceDisplay::Attributes
         {
@@ -393,13 +390,12 @@ impl Draw for ViewExplorerHome<'_> {
             if let Some(domain) = shared_view_state.tango_devices_lookup.get_by_ix(domain_ix) {
                 if let Some(family) = domain.get_by_ix(family_ix) {
                     if let Some(member) = family.get_by_ix(member_ix) {
-                        shared_view_state.current_selected_device =
-                            Some(member.device_name.clone());
+                        shared_view_state.selected_device = Some(member.device_name.clone());
                     }
                 }
             }
         } else {
-            shared_view_state.current_selected_device = None;
+            shared_view_state.selected_device = None;
         }
         0
     }
