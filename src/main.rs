@@ -31,14 +31,13 @@ use std::{
     time::{Duration, Instant},
 };
 use tui::{backend::CrosstermBackend, Terminal};
-use uuid::Uuid;
 use views::AttributeReadings;
 
 pub enum Event {
     Input(KeyEvent),
     Tick,
     UpdateTangoDeviceReadings(AttributeReadings),
-    UpdateCommandResult(Uuid, String),
+    UpdateCommandResult(u128, String),
 }
 
 fn main() -> Result<(), Box<dyn Error>> {

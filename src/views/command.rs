@@ -1,13 +1,11 @@
-// use crate::tango_utils;
 use crate::{
     tango_utils,
     views::{Draw, SharedViewState},
     Event,
 };
 use log::error;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tango_client::TangoDataType;
-use uuid::Uuid;
-// use log::error;
 use crossterm::event::{KeyCode, KeyEvent};
 use std::{
     collections::BTreeMap,
@@ -50,7 +48,7 @@ pub struct ExecutedCommand {
 
 #[derive(Debug)]
 pub struct ExecutedCommands {
-    pub executed_commands: BTreeMap<Uuid, ExecutedCommand>,
+    pub executed_commands: BTreeMap<u128, ExecutedCommand>,
     pub current_command: Option<String>,
     pub current_command_in_type: Option<TangoDataType>,
     pub current_parsed_parameter: Option<String>,
@@ -61,6 +59,14 @@ pub struct ExecutedCommands {
 }
 
 impl ExecutedCommands {
+    pub fn get_millis_since_epoch(&self) -> u128 {
+        let start = SystemTime::now();
+        start
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
+    }
+
     pub fn new(tx_commands: mpsc::Sender<Event>) -> Self {
         Self {
             executed_commands: BTreeMap::default(),
@@ -75,14 +81,15 @@ impl ExecutedCommands {
     }
 
     pub fn execute_command(&mut self, device_name: String, command: String, parameter: String) {
-        let uuid = Uuid::new_v4();
+        let seconds_since_epoch = self.get_millis_since_epoch();
         let execute_command = ExecutedCommand {
             command: command.clone(),
             parameter: parameter.clone(),
             device_name: device_name.clone(),
             result: String::from("In Progress"),
         };
-        self.executed_commands.insert(uuid.clone(), execute_command);
+        self.executed_commands
+            .insert(seconds_since_epoch, execute_command);
 
         let tx_commands = self.tx_commands.clone();
         thread::spawn(move || {
@@ -97,7 +104,7 @@ impl ExecutedCommands {
                     err.to_string()
                 }
             };
-            match tx_commands.send(Event::UpdateCommandResult(uuid, res)) {
+            match tx_commands.send(Event::UpdateCommandResult(seconds_since_epoch, res)) {
                 Ok(_) => {}
                 Err(err) => {
                     error!("Could not send result {}", err)
@@ -211,7 +218,7 @@ impl ViewCommand {
         };
 
         let mut rows: Vec<Row> = Vec::new();
-        for (_, executed_command) in &shared_view_state.executed_commands.executed_commands {
+        for (_, executed_command) in shared_view_state.executed_commands.executed_commands.iter().rev() {
             rows.push(Row::new(vec![
                 Cell::from(executed_command.device_name.clone()),
                 Cell::from(executed_command.command.clone()),
