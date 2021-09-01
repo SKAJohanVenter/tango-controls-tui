@@ -8,6 +8,7 @@ use crate::stateful_tree::StatefulTree;
 use crate::tango_utils::TangoDevicesLookup;
 use crossterm::event::{KeyCode, KeyEvent};
 use std::convert::{From, Into};
+use tango_client::TangoDataType;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -31,11 +32,17 @@ enum DeviceDisplay {
     Empty,
 }
 
+#[derive(Default, Clone)]
+pub struct RowId {
+    name: String,
+    in_type: Option<TangoDataType>,
+}
+
 pub struct ViewExplorerHome<'a> {
     stateful_tree: StatefulTree<'a>,
     focus: Focus,
     stateful_table: TableState,
-    stateful_table_items: Vec<(String, Row<'a>)>,
+    stateful_table_items: Vec<(RowId, Row<'a>)>,
     device_display: DeviceDisplay,
 }
 
@@ -85,7 +92,11 @@ impl<'a> ViewExplorerHome<'a> {
                         Ok(commands) => {
                             for comm in commands {
                                 self.stateful_table_items.push((
-                                    format!("{}", comm.name),
+                                    RowId {
+                                        name: comm.name.clone(),
+                                        in_type: Some(comm.in_type),
+                                    },
+                                    // format!("{}", comm.name),
                                     Row::new(vec![
                                         comm.name,
                                         format!("{:?}", comm.in_type),
@@ -96,7 +107,7 @@ impl<'a> ViewExplorerHome<'a> {
                         }
                         Err(err) => {
                             self.stateful_table_items.push((
-                                "".to_string(),
+                                RowId::default(),
                                 Row::new(vec![
                                     format!("Error retrieving info: {}", err),
                                     "".to_string(),
@@ -112,7 +123,10 @@ impl<'a> ViewExplorerHome<'a> {
                         Ok(attributes) => {
                             for attr in attributes {
                                 self.stateful_table_items.push((
-                                    format!("{}", attr.attribute_info.name),
+                                    RowId {
+                                        name: format!("{}", attr.attribute_info.name),
+                                        in_type: None,
+                                    },
                                     Row::new(vec![
                                         attr.attribute_info.name,
                                         display_attribute_type(attr.attribute_data),
@@ -124,7 +138,7 @@ impl<'a> ViewExplorerHome<'a> {
                         }
                         Err(err) => {
                             self.stateful_table_items.push((
-                                "".to_string(),
+                                RowId::default(),
                                 Row::new(vec![
                                     format!("Error retrieving info: {}", err),
                                     "".to_string(),
@@ -291,7 +305,7 @@ impl<'a> ViewExplorerHome<'a> {
                 if self.device_display == DeviceDisplay::Attributes {
                     if let Some(current_position) = self.stateful_table.selected() {
                         if let Some(attr_row) = self.stateful_table_items.get(current_position) {
-                            shared_view_state.add_watch_attribute(attr_row.0.clone());
+                            shared_view_state.add_watch_attribute(attr_row.0.name.clone());
                         }
                     }
                 }
@@ -299,9 +313,11 @@ impl<'a> ViewExplorerHome<'a> {
             KeyCode::Char('x') => {
                 if self.device_display == DeviceDisplay::Commands {
                     if let Some(current_position) = self.stateful_table.selected() {
-                        if let Some(attr_row) = self.stateful_table_items.get(current_position) {
+                        if let Some(command_row) = self.stateful_table_items.get(current_position) {
                             shared_view_state.executed_commands.current_command =
-                                Some(attr_row.0.clone());
+                                Some(command_row.0.name.clone());
+                            shared_view_state.executed_commands.current_command_in_type =
+                                command_row.0.in_type;
                             shared_view_state.current_view = View::Command;
                         }
                     }

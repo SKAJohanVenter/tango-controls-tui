@@ -5,11 +5,12 @@ use crate::{
     Event,
 };
 use log::error;
+use tango_client::TangoDataType;
 use uuid::Uuid;
 // use log::error;
 use crossterm::event::{KeyCode, KeyEvent};
 use std::{
-    collections::{BTreeMap},
+    collections::BTreeMap,
     convert::{From, Into},
     sync::mpsc,
     thread,
@@ -51,6 +52,9 @@ pub struct ExecutedCommand {
 pub struct ExecutedCommands {
     pub executed_commands: BTreeMap<Uuid, ExecutedCommand>,
     pub current_command: Option<String>,
+    pub current_command_in_type: Option<TangoDataType>,
+    pub current_parsed_parameter: Option<String>,
+    pub current_parsed_error: Option<String>,
     pub current_parameter: Option<String>,
     pub tx_commands: mpsc::Sender<Event>,
     pub current_device: Option<String>,
@@ -63,6 +67,9 @@ impl ExecutedCommands {
             current_command: None,
             current_parameter: None,
             current_device: None,
+            current_command_in_type: None,
+            current_parsed_error: None,
+            current_parsed_parameter: None,
             tx_commands,
         }
     }
@@ -79,7 +86,7 @@ impl ExecutedCommands {
 
         let tx_commands = self.tx_commands.clone();
         thread::spawn(move || {
-            let res = match tango_utils::execute_command(
+            let res = match tango_utils::execute_tango_command(
                 device_name.as_str(),
                 command.as_str(),
                 parameter.as_str(),
@@ -87,7 +94,7 @@ impl ExecutedCommands {
                 Ok(command_data) => command_data.to_string(),
                 Err(err) => {
                     error!("Command Error {}", err);
-                    String::from("Error, see log")
+                    err.to_string()
                 }
             };
             match tx_commands.send(Event::UpdateCommandResult(uuid, res)) {

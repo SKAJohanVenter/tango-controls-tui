@@ -1,6 +1,7 @@
-// use crate::tango_utils;
-use crate::views::{Draw, SharedViewState};
-// use log::error;
+use crate::{
+    tango_utils::parse_command_data,
+    views::{Draw, SharedViewState},
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use std::convert::{From, Into};
 use tui::{
@@ -27,9 +28,35 @@ impl ViewConfirmCommand {
         }
     }
 
-    fn schedule_command(&mut self, shared_view_state: &mut SharedViewState) {
-        shared_view_state.current_view = View::Command;
+    pub fn update_param_values(&self, shared_view_state: &mut SharedViewState) {
+        shared_view_state.executed_commands.current_parsed_error = None;
+        shared_view_state.executed_commands.current_parsed_parameter = None;
 
+        match shared_view_state
+            .executed_commands
+            .current_parameter
+            .clone()
+        {
+            Some(current_param) => {
+                match shared_view_state.executed_commands.current_command_in_type {
+                    Some(in_type) => match parse_command_data(current_param.as_str(), in_type) {
+                        Ok(command_data) => {
+                            shared_view_state.executed_commands.current_parsed_parameter =
+                                Some(command_data.to_string())
+                        }
+                        Err(err) => {
+                            shared_view_state.executed_commands.current_parsed_error =
+                                Some(err.to_string())
+                        }
+                    },
+                    None => (),
+                }
+            }
+            None => (),
+        }
+    }
+
+    fn schedule_command(&mut self, shared_view_state: &mut SharedViewState) {
         if let Some(device) = shared_view_state.executed_commands.current_device.clone() {
             if let Some(command) = shared_view_state.executed_commands.current_command.clone() {
                 if let Some(parameter) = shared_view_state
@@ -48,24 +75,38 @@ impl ViewConfirmCommand {
     fn handle_event(&mut self, key_event: &KeyEvent, shared_view_state: &mut SharedViewState) {
         match key_event.code {
             KeyCode::Enter => {
-                self.schedule_command(shared_view_state);
+                if shared_view_state
+                    .executed_commands
+                    .current_parsed_error
+                    .is_none()
+                {
+                    self.schedule_command(shared_view_state);
+                }
+                shared_view_state.current_view = View::Command;
             }
             KeyCode::Char(ch) => match ch {
                 'Y' | 'y' => {
-                    self.schedule_command(shared_view_state);
+                    if shared_view_state
+                        .executed_commands
+                        .current_parsed_error
+                        .is_none()
+                    {
+                        self.schedule_command(shared_view_state);
+                    }
+                    shared_view_state.current_view = View::Command;
                 }
-                'N' | 'n' => shared_view_state.current_view = View::Command,
                 _ => shared_view_state.current_view = View::Command,
             },
             _ => {}
         }
     }
 
-    fn draw_popup<B: Backend>(
+    fn draw_confirm<B: Backend>(
         &self,
         f: &mut Frame<B>,
         area: Rect,
         shared_view_state: &mut SharedViewState,
+        parsed_command: String,
     ) {
         let create_block = |title| {
             Block::default().borders(Borders::ALL).title(Span::styled(
@@ -85,23 +126,34 @@ impl ViewConfirmCommand {
                     .unwrap_or("".to_string())
             )),
             Spans::from(""),
-            Spans::from(format!(
-                "With paramater : {}",
-                shared_view_state
-                    .executed_commands
-                    .current_parameter
-                    .clone()
-                    .unwrap_or("".to_string())
-            )),
+            Spans::from(format!("With paramater : {}", parsed_command)),
         ];
 
         let paragraph = Paragraph::new(text)
-            // .style(Style::default().bg(Color::White).fg(Color::Black))
             .block(create_block(" Confirm (Y)es / (N)o "))
             .alignment(Alignment::Left)
             .wrap(Wrap { trim: true });
 
-        f.render_widget(Clear, area); //this clears out the background
+        f.render_widget(Clear, area);
+        f.render_widget(paragraph, area);
+    }
+
+    fn draw_error<B: Backend>(&self, f: &mut Frame<B>, area: Rect, err: String) {
+        let create_block = |title| {
+            Block::default().borders(Borders::ALL).title(Span::styled(
+                title,
+                Style::default().add_modifier(Modifier::BOLD),
+            ))
+        };
+
+        let text = vec![Spans::from(format!("Parameter Error: {}", err))];
+
+        let paragraph = Paragraph::new(text)
+            .block(create_block(" Error "))
+            .alignment(Alignment::Left)
+            .wrap(Wrap { trim: true });
+
+        f.render_widget(Clear, area);
         f.render_widget(paragraph, area);
     }
 }
@@ -113,7 +165,24 @@ impl Draw for ViewConfirmCommand {
         area: Rect,
         shared_view_state: &mut SharedViewState,
     ) {
-        self.draw_popup(f, area, shared_view_state);
+        self.update_param_values(shared_view_state);
+        if let Some(err) = shared_view_state
+            .executed_commands
+            .current_parsed_error
+            .clone()
+        {
+            self.draw_error(f, area, err);
+            return;
+        }
+
+        if let Some(param) = shared_view_state
+            .executed_commands
+            .current_parsed_parameter
+            .clone()
+        {
+            self.draw_confirm(f, area, shared_view_state, param);
+            return;
+        }
     }
 
     fn handle_event(
