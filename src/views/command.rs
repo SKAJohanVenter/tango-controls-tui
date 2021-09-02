@@ -3,16 +3,16 @@ use crate::{
     views::{Draw, SharedViewState},
     Event,
 };
+use crossterm::event::{KeyCode, KeyEvent};
 use log::error;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tango_client::TangoDataType;
-use crossterm::event::{KeyCode, KeyEvent};
 use std::{
     collections::BTreeMap,
     convert::{From, Into},
     sync::mpsc,
     thread,
 };
+use tango_client::TangoDataType;
 use tui::{
     backend::Backend,
     layout::Constraint,
@@ -24,12 +24,12 @@ use tui::{
     Frame,
 };
 
-use super::View;
+use super::{MenuOption, View};
 
 #[derive(Debug)]
 enum Focus {
     Input,
-    Messages,
+    // Messages, TODO
 }
 
 impl Default for Focus {
@@ -132,59 +132,64 @@ impl ViewCommand {
 
     fn handle_event(&mut self, key_event: &KeyEvent, shared_view_state: &mut SharedViewState) {
         let paramater_string = String::from("< Enter parameter >");
-        match key_event.code {
-            KeyCode::Up => match self.focus {
-                Focus::Input => self.focus = Focus::Messages,
-                Focus::Messages => {
-                    self.focus = Focus::Input;
+
+        if shared_view_state.selected_device.is_some()
+            && shared_view_state
+                .executed_commands
+                .current_command
+                .is_some()
+        {
+            match key_event.code {
+                // KeyCode::Up => match self.focus {
+                //     Focus::Input => self.focus = Focus::Messages,
+                //     Focus::Messages => {
+                //         self.focus = Focus::Input;
+                //     }
+                // },
+                // KeyCode::Down => match self.focus {
+                //     Focus::Input => {
+                //         if self.input == paramater_string {
+                //             self.input.clear();
+                //         }
+                //         self.focus = Focus::Messages;
+                //     }
+                //     Focus::Messages => self.focus = Focus::Input,
+                // },
+                KeyCode::Left | KeyCode::Right => {
+                    if self.input == paramater_string {
+                        self.input.clear();
+                    }
                 }
-            },
-            KeyCode::Left | KeyCode::Right => {
-                if self.input == paramater_string {
-                    self.input.clear();
-                }
+                KeyCode::Enter => match self.focus {
+                    Focus::Input => {
+                        if self.input == paramater_string {
+                            self.input.clear();
+                        }
+                        shared_view_state.current_view = View::ConfirmCommand;
+                        shared_view_state.executed_commands.current_parameter =
+                            Some(self.input.clone());
+                        shared_view_state.executed_commands.current_device =
+                            shared_view_state.selected_device.clone();
+                    } // Focus::Messages => {} TODO
+                },
+                KeyCode::Char(c) => match self.focus {
+                    Focus::Input => {
+                        if self.input == paramater_string {
+                            self.input.clear();
+                        }
+                        self.input.push(c);
+                    } // Focus::Messages => {} TODO
+                },
+                KeyCode::Backspace => match self.focus {
+                    Focus::Input => {
+                        if self.input == paramater_string {
+                            self.input.clear();
+                        }
+                        self.input.pop();
+                    } // Focus::Messages => {} TODO
+                },
+                _ => {}
             }
-            KeyCode::Down => match self.focus {
-                Focus::Input => {
-                    if self.input == paramater_string {
-                        self.input.clear();
-                    }
-                    self.focus = Focus::Messages;
-                }
-                Focus::Messages => self.focus = Focus::Input,
-            },
-            KeyCode::Enter => match self.focus {
-                Focus::Input => {
-                    if self.input == paramater_string {
-                        self.input.clear();
-                    }
-                    shared_view_state.current_view = View::ConfirmCommand;
-                    shared_view_state.executed_commands.current_parameter =
-                        Some(self.input.clone());
-                    shared_view_state.executed_commands.current_device =
-                        shared_view_state.selected_device.clone();
-                }
-                Focus::Messages => {}
-            },
-            KeyCode::Char(c) => match self.focus {
-                Focus::Input => {
-                    if self.input == paramater_string {
-                        self.input.clear();
-                    }
-                    self.input.push(c);
-                }
-                Focus::Messages => {}
-            },
-            KeyCode::Backspace => match self.focus {
-                Focus::Input => {
-                    if self.input == paramater_string {
-                        self.input.clear();
-                    }
-                    self.input.pop();
-                }
-                Focus::Messages => {}
-            },
-            _ => {}
         }
     }
 
@@ -208,17 +213,34 @@ impl ViewCommand {
             None => "Device and Command not selected".to_string(),
         };
 
-        let input = Paragraph::new(self.input.as_str())
-            .block(Block::default().borders(Borders::ALL).title(title));
-        match self.focus {
-            Focus::Input => {
-                f.set_cursor(chunks[0].x + self.input.len() as u16 + 1, chunks[0].y + 1);
-            }
-            Focus::Messages => {}
+        let input = if shared_view_state.selected_device.is_none()
+            || shared_view_state
+                .executed_commands
+                .current_command
+                .is_none()
+        {
+            // No device or command
+            let input = Paragraph::new("Please select a device and command")
+                .block(Block::default().borders(Borders::ALL).title(title));
+            input
+        } else {
+            let input = Paragraph::new(self.input.as_str())
+                .block(Block::default().borders(Borders::ALL).title(title));
+            match self.focus {
+                Focus::Input => {
+                    f.set_cursor(chunks[0].x + self.input.len() as u16 + 1, chunks[0].y + 1);
+                } // Focus::Messages => {} TODO
+            };
+            input
         };
 
         let mut rows: Vec<Row> = Vec::new();
-        for (_, executed_command) in shared_view_state.executed_commands.executed_commands.iter().rev() {
+        for (_, executed_command) in shared_view_state
+            .executed_commands
+            .executed_commands
+            .iter()
+            .rev()
+        {
             rows.push(Row::new(vec![
                 Cell::from(executed_command.device_name.clone()),
                 Cell::from(executed_command.command.clone()),
@@ -254,6 +276,14 @@ impl ViewCommand {
 }
 
 impl Draw for ViewCommand {
+    fn get_view_menu_items(&self, _shared_view_state: &mut SharedViewState) -> Vec<MenuOption> {
+        let items = vec![MenuOption {
+            key: "Enter".to_string(),
+            description: "Execute command with paramater".to_string(),
+        }];
+        items
+    }
+
     fn draw_body<B: Backend>(
         &self,
         f: &mut Frame<B>,

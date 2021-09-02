@@ -361,6 +361,10 @@ impl Draw for ViewExplorerHome<'_> {
                 key: "a".to_string(),
                 description: "Attribute List".to_string(),
             });
+            items.push(MenuOption {
+                key: "x".to_string(),
+                description: "Execute command".to_string(),
+            });
         }
 
         if shared_view_state.selected_device.is_some()
