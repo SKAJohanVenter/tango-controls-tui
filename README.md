@@ -21,6 +21,8 @@ TUI to explore Tango devices
 
 ## Limitations
 
+- WARNING: If your device has attributes of type ENUM it _will_ crash the application if you expand it in the device list.
+  - `tango-rs` does not support it.
 - Not all attribute types are able to be displayed in the watchlist.
 - Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly
 - Events are not supported
