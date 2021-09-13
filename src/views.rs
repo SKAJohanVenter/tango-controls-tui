@@ -90,7 +90,7 @@ impl SharedViewState<'_> {
             View::Command => self.current_view = View::Explorer,
             View::WatchList => self.current_view = View::Command,
             View::Explorer => self.current_view = View::WatchList,
-            _ => panic!("Tab position for {} not defined", self.current_view),
+            View::ConfirmCommand => self.current_view = View::Command,
         }
     }
 }
