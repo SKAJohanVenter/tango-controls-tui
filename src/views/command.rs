@@ -6,12 +6,7 @@ use crate::{
 use crossterm::event::{KeyCode, KeyEvent};
 use log::error;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{
-    collections::BTreeMap,
-    convert::{From, Into},
-    sync::mpsc,
-    thread,
-};
+use std::{collections::BTreeMap, convert::From, sync::mpsc, thread};
 use tango_client::TangoDataType;
 use tui::{
     backend::Backend,

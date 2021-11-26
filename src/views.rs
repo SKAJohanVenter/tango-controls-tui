@@ -210,14 +210,15 @@ pub trait Draw {
             )
             .split(area);
 
-        let tango_host_text = Paragraph::new("Tango Controls Explorer TUI")
-            .style(Style::default().fg(Color::LightCyan))
-            .alignment(Alignment::Left);
+        let tango_host_text =
+            Paragraph::new("Ｔａｎｇｏ  Ｃｏｎｔｒｏｌｓ  Ｅｘｐｌｏｒｅｒ  ＴＵＩ")
+                .style(Style::default().fg(Color::LightCyan))
+                .alignment(Alignment::Left);
         // .block(Block::default().style(Style::default().fg(Color::White)));
         f.render_widget(tango_host_text, chunks[0]);
 
         let program_name_text = Paragraph::new(format!(
-            "  TANGO_HOST: {}",
+            "TANGO_HOST: {}",
             shared_view_state
                 .tango_host
                 .as_ref()

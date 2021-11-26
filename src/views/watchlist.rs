@@ -1,7 +1,7 @@
 use crate::tango_utils;
 use crate::views::{Draw, SharedViewState};
 use log::error;
-use std::convert::{From, Into};
+use std::convert::From;
 use tui::{
     backend::Backend,
     layout::Constraint,
@@ -112,7 +112,7 @@ impl ViewWatchList {
                     .bottom_margin(1),
             )
             // As any other widget, a Table can be wrapped in a Block.
-            .block(Block::default().title(" Watched values"))
+            .block(Block::default().title(""))
             // Columns widths are constrained in the same way as Layout...
             .widths(&widths)
             // ...and they can be separated by a fixed spacing.

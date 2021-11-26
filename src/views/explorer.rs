@@ -7,7 +7,7 @@ use crate::views::{Draw, MenuOption, SharedViewState};
 use crate::stateful_tree::StatefulTree;
 use crate::tango_utils::TangoDevicesLookup;
 use crossterm::event::{KeyCode, KeyEvent};
-use std::convert::{From, Into};
+use std::convert::From;
 use tango_client::TangoDataType;
 use tui::{
     backend::Backend,
@@ -283,11 +283,15 @@ impl<'a> ViewExplorerHome<'a> {
                     if current_selected > 0 {
                         self.stateful_table.select(Some(current_selected - 1));
                     }
+                    if current_selected == 0 {
+                        self.stateful_table
+                            .select(Some(self.stateful_table_items.len() - 1));
+                    }
                 }
             }
             KeyCode::Down => {
                 if let Some(current_selected) = self.stateful_table.selected() {
-                    if current_selected == self.stateful_table_items.len() {
+                    if current_selected == self.stateful_table_items.len() - 1 {
                         self.stateful_table.select(Some(0));
                     } else {
                         self.stateful_table.select(Some(current_selected + 1));
@@ -301,16 +305,15 @@ impl<'a> ViewExplorerHome<'a> {
                 self.stateful_table_items.clear();
                 self.device_display = DeviceDisplay::Empty;
             }
-            KeyCode::Char('w') => {
+            KeyCode::Enter => {
                 if self.device_display == DeviceDisplay::Attributes {
                     if let Some(current_position) = self.stateful_table.selected() {
                         if let Some(attr_row) = self.stateful_table_items.get(current_position) {
                             shared_view_state.add_watch_attribute(attr_row.0.name.clone());
+                            shared_view_state.current_view = View::WatchList;
                         }
                     }
                 }
-            }
-            KeyCode::Char('x') => {
                 if self.device_display == DeviceDisplay::Commands {
                     if let Some(current_position) = self.stateful_table.selected() {
                         if let Some(command_row) = self.stateful_table_items.get(current_position) {
@@ -362,7 +365,7 @@ impl Draw for ViewExplorerHome<'_> {
                 description: "Attribute List".to_string(),
             });
             items.push(MenuOption {
-                key: "x".to_string(),
+                key: "Enter".to_string(),
                 description: "Execute command".to_string(),
             });
         }
@@ -381,7 +384,7 @@ impl Draw for ViewExplorerHome<'_> {
             && self.device_display == DeviceDisplay::Attributes
         {
             items.push(MenuOption {
-                key: "w".to_string(),
+                key: "ENTER".to_string(),
                 description: "Watch Attribute".to_string(),
             });
         }

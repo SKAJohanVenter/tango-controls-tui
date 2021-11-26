@@ -3,7 +3,7 @@ use crate::{
     views::{Draw, SharedViewState},
 };
 use crossterm::event::{KeyCode, KeyEvent};
-use std::convert::{From, Into};
+use std::convert::From;
 use tui::{
     backend::Backend,
     layout::Rect,
