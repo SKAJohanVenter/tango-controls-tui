@@ -39,6 +39,9 @@ pub enum Event {
     UpdateCommandResult(u128, String),
 }
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const REPO: &str = env!("CARGO_PKG_REPOSITORY");
+
 fn main() -> Result<(), Box<dyn Error>> {
     // Parse args
     let matches = parse_commandline_args();

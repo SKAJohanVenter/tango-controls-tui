@@ -3,6 +3,7 @@ name = "tango-controls-tui"
 version = "0.0.1"
 authors = ["Johan Venter <a.johan.venter@gmail.com>"]
 edition = "2018"
+repository = "https://github.com/SKAJohanVenter/tango-controls-tui"
 
 [dependencies]
 crossterm = "0.22.1"

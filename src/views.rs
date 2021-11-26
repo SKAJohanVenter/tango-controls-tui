@@ -13,7 +13,7 @@ use watchlist::ViewWatchList;
 
 use crate::tango_utils::TangoDevicesLookup;
 use crate::views::watchlist::AttributeReading;
-use crate::Event;
+use crate::{Event, REPO, VERSION};
 use crossterm::event::KeyEvent;
 use std::hash::Hash;
 use tui::symbols::line::DOUBLE_VERTICAL;
@@ -210,15 +210,13 @@ pub trait Draw {
             )
             .split(area);
 
-        let tango_host_text =
-            Paragraph::new("Ｔａｎｇｏ  Ｃｏｎｔｒｏｌｓ  Ｅｘｐｌｏｒｅｒ  ＴＵＩ")
-                .style(Style::default().fg(Color::LightCyan))
-                .alignment(Alignment::Left);
-        // .block(Block::default().style(Style::default().fg(Color::White)));
+        let tango_host_text = Paragraph::new(format!("Tango Controls Explorer GUI\nv{}", VERSION))
+            .style(Style::default().fg(Color::LightCyan))
+            .alignment(Alignment::Left);
         f.render_widget(tango_host_text, chunks[0]);
 
         let program_name_text = Paragraph::new(format!(
-            "TANGO_HOST: {}",
+            "{}\nTANGO_HOST: {}", REPO,
             shared_view_state
                 .tango_host
                 .as_ref()
@@ -358,7 +356,7 @@ pub trait Draw {
             .margin(0)
             .constraints(
                 [
-                    Constraint::Length(1), // TANGO HOST
+                    Constraint::Length(2), // TANGO HOST
                     Constraint::Length(6), // Instructions
                     Constraint::Length(3), // Tabs
                     Constraint::Min(2),    // Explorer
