@@ -66,11 +66,8 @@ impl<'a> App<'a> {
     }
 
     pub fn handle_event(&mut self, key_event: &KeyEvent) {
-        match key_event.code {
-            KeyCode::Tab => {
-                self.shared_view_state.toggle_current_view();
-            }
-            _ => {}
+        if let KeyCode::Tab = key_event.code {
+            self.shared_view_state.toggle_current_view();
         }
 
         let current_view = self
@@ -109,11 +106,8 @@ impl<'a> App<'a> {
     }
 
     pub fn update_device_attr_map(&mut self, attr_map: AttributeReadings) {
-        match self.shared_view_state.watch_list.try_lock() {
-            Ok(mut wl) => {
-                *wl = attr_map;
-            }
-            Err(_) => {}
+        if let Ok(mut wl) = self.shared_view_state.watch_list.try_lock() {
+            *wl = attr_map;
         }
     }
 

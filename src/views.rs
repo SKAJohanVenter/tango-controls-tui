@@ -62,12 +62,12 @@ impl SharedViewState<'_> {
                 .lock()
                 .unwrap()
                 .entry(current_device.clone())
-                .or_insert(BTreeMap::default());
+                .or_insert_with(BTreeMap::default);
             // Add the attribute if not present
             if let Some(attr_map) = self.watch_list.lock().unwrap().get_mut(current_device) {
                 attr_map
                     .entry(attribute_name)
-                    .or_insert(AttributeReading::default());
+                    .or_insert_with(AttributeReading::default);
             }
         };
     }
@@ -79,7 +79,7 @@ impl SharedViewState<'_> {
             }
 
             if let Some(attr_map) = self.watch_list.lock().unwrap().get(current_device) {
-                if attr_map.len() == 0 {
+                if attr_map.is_empty() {
                     self.watch_list.lock().unwrap().remove(current_device);
                 }
             }
@@ -135,11 +135,9 @@ impl<'a> fmt::Display for ViewType<'a> {
     }
 }
 
-// The Into here is used to translate a View into an usize.
-// The usize is used to determine which tab to select
-impl Into<usize> for &ViewType<'_> {
-    fn into(self) -> usize {
-        match self {
+impl From<&ViewType<'_>> for usize {
+    fn from(item: &ViewType) -> Self {
+        match item {
             ViewType::Explorer(_) => 0,
             ViewType::WatchList(_) => 1,
             ViewType::Command(_) => 2,
@@ -237,8 +235,8 @@ pub trait Draw {
         area: Rect,
         shared_view_state: &mut SharedViewState,
     ) {
-        let mut menu_items: Vec<MenuOption> = self.get_default_menu_items().clone();
-        menu_items.extend(self.get_view_menu_items(shared_view_state).clone());
+        let mut menu_items: Vec<MenuOption> = self.get_default_menu_items();
+        menu_items.extend(self.get_view_menu_items(shared_view_state));
 
         // Split menu left/right
         let chunks = Layout::default()

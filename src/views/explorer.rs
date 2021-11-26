@@ -124,7 +124,7 @@ impl<'a> ViewExplorerHome<'a> {
                             for attr in attributes {
                                 self.stateful_table_items.push((
                                     RowId {
-                                        name: format!("{}", attr.attribute_info.name),
+                                        name: attr.attribute_info.name.to_string(),
                                         in_type: None,
                                     },
                                     Row::new(vec![
@@ -340,9 +340,9 @@ impl<'a> ViewExplorerHome<'a> {
     }
 }
 
-impl Into<usize> for ViewExplorerHome<'_> {
-    fn into(self) -> usize {
-        0
+impl From<ViewExplorerHome<'_>> for usize {
+    fn from(_item: ViewExplorerHome<'_>) -> usize {
+        1
     }
 }
 
@@ -410,7 +410,7 @@ impl Draw for ViewExplorerHome<'_> {
             if let Some(domain) = shared_view_state.tango_devices_lookup.get_by_ix(domain_ix) {
                 if let Some(family) = domain.get_by_ix(family_ix) {
                     if let Some(member) = family.get_by_ix(member_ix) {
-                        shared_view_state.selected_device = Some(member.device_name.clone());
+                        shared_view_state.selected_device = Some(member.device_name);
                     }
                 }
             }

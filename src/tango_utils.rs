@@ -123,7 +123,7 @@ impl<'a> TangoDevicesLookup<'a> {
 
     pub fn split_devices_list<S: AsRef<str>>(devices_string: S) -> Vec<String> {
         let mut devices_str = devices_string.as_ref();
-        if devices_str.len() == 0 || devices_str == "[]" {
+        if devices_str.is_empty() || devices_str == "[]" {
             vec![]
         } else {
             devices_str = &devices_str[1..];
@@ -140,19 +140,19 @@ impl<'a> TangoDevicesLookup<'a> {
         let mut domains = BTreeMap::default();
 
         for device in devices.iter().cloned() {
-            let split_device: Vec<&str> = device.split("/").collect();
+            let split_device: Vec<&str> = device.split('/').collect();
             if let [domain_key, family_key, member_key] = split_device[..] {
                 // Init the domains
                 domains
                     .entry(domain_key.to_string())
-                    .or_insert(Domain::default());
+                    .or_insert_with(Domain::default);
 
                 if let Some(domain) = domains.get_mut(domain_key) {
                     // Init the families
                     domain
                         .families
                         .entry(family_key.to_string())
-                        .or_insert(Family::default());
+                        .or_insert_with(Family::default);
 
                     if let Some(family) = domain.families.get_mut(family_key) {
                         // Init the members
@@ -176,7 +176,7 @@ pub fn read_attribute(
 ) -> Result<Option<AttributeData>, Box<dyn Error>> {
     let mut dp = DeviceProxy::new(device_name)?;
     // let value = dp.read_attribute(attribute_name)?;
-    let attribute_data = match dp.read_attribute(&attribute_name) {
+    let attribute_data = match dp.read_attribute(attribute_name) {
         Ok(ad) => Some(ad),
         Err(err) => {
             error!(
@@ -207,7 +207,7 @@ pub fn get_attribute_list(device_name: &str) -> Result<Vec<DeviceAttribute>, Box
         };
 
         let da: DeviceAttribute = DeviceAttribute {
-            attribute_data: attribute_data,
+            attribute_data,
             attribute_info: attr,
         };
         device_attributes.push(da);
@@ -368,7 +368,7 @@ pub fn parse_command_data(
                 "ALARM" => Ok(TangoDevState::Alarm),
                 "DISABLE" => Ok(TangoDevState::Disable),
                 "UNKNOWN" => Ok(TangoDevState::Unknown),
-                _ => Err(anyhow!("State not recognised"))?,
+                _ => return Err(anyhow!("State not recognised").into()),
             };
             match state {
                 Ok(res) => CommandData::State(res),
@@ -412,10 +412,7 @@ pub fn parse_command_data(
             }
             CommandData::ULong64Array(la)
         }
-        _ => Err(anyhow!(
-            "Command input type [{:?}] not supported",
-            data_type
-        ))?,
+        _ => return Err(anyhow!("Command input type [{:?}] not supported", data_type).into()),
     };
     Ok(res)
 }

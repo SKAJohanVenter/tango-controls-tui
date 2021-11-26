@@ -24,35 +24,31 @@ impl Default for AttributeReading {
 }
 
 impl AttributeReading {
-    pub fn update(&mut self, device_name: &String, attr_name: &String) -> &mut AttributeReading {
-        match self {
-            AttributeReading::Value(_) => {
-                match tango_utils::read_attribute(device_name, attr_name) {
-                    Ok(attr_data_option) => {
-                        match attr_data_option {
-                            Some(attr_data) => {
-                                match attr_data.data.into_string() {
-                                    Ok(val) => *self = AttributeReading::Value(format!("{}", val)),
-                                    // Looks like err is a valid value ?
-                                    Err(err) => *self = AttributeReading::Value(format!("{}", err)),
-                                }
-                            }
-                            None => {
-                                *self =
-                                    AttributeReading::Value("Error reading attribute".to_string());
+    pub fn update(&mut self, device_name: &str, attr_name: &str) -> &mut AttributeReading {
+        if let AttributeReading::Value(_) = self {
+            match tango_utils::read_attribute(device_name, attr_name) {
+                Ok(attr_data_option) => {
+                    match attr_data_option {
+                        Some(attr_data) => {
+                            match attr_data.data.into_string() {
+                                Ok(val) => *self = AttributeReading::Value(val),
+                                // Looks like err is a valid value ?
+                                Err(err) => *self = AttributeReading::Value(format!("{}", err)),
                             }
                         }
+                        None => {
+                            *self = AttributeReading::Value("Error reading attribute".to_string());
+                        }
                     }
-                    Err(err) => {
-                        *self = AttributeReading::Error("Reading of type unsupported".to_string());
-                        error!(
-                            "Reading conversion error for {}/{}: {}",
-                            device_name, attr_name, err
-                        );
-                    }
-                };
-            }
-            _ => {}
+                }
+                Err(err) => {
+                    *self = AttributeReading::Error("Reading of type unsupported".to_string());
+                    error!(
+                        "Reading conversion error for {}/{}: {}",
+                        device_name, attr_name, err
+                    );
+                }
+            };
         };
         self
     }
@@ -152,8 +148,8 @@ impl From<usize> for ViewWatchList {
     }
 }
 
-impl Into<usize> for ViewWatchList {
-    fn into(self) -> usize {
+impl From<ViewWatchList> for usize {
+    fn from(_item: ViewWatchList) -> usize {
         1
     }
 }

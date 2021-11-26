@@ -5,12 +5,14 @@ authors = ["Johan Venter <a.johan.venter@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.43"
-crossterm = { version = "0.19"}
-tui = { version = "0.14", default-features = false, features = ['crossterm'] }
-clap = "3.0.0-beta.2"
-tango-client = "0.3.1"
-unicode-width = "0.1"
-tui-tree-widget = "0.4.0"
+crossterm = "0.22.1"
+tui = { version = "0.16.0", default-features = false, features = ['crossterm'] }
+tango-client = "0.4.1"
+unicode-width = "0.1.9"
+tui-tree-widget = "0.7.0"
 log = "0.4.14"
 log4rs = "1.0.0"
+anyhow = "1.0.48"
+clap = "2.33.3"
+
+[features]

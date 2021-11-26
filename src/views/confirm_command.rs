@@ -32,27 +32,23 @@ impl ViewConfirmCommand {
         shared_view_state.executed_commands.current_parsed_error = None;
         shared_view_state.executed_commands.current_parsed_parameter = None;
 
-        match shared_view_state
+        if let Some(current_param) = shared_view_state
             .executed_commands
             .current_parameter
             .clone()
         {
-            Some(current_param) => {
-                match shared_view_state.executed_commands.current_command_in_type {
-                    Some(in_type) => match parse_command_data(current_param.as_str(), in_type) {
-                        Ok(command_data) => {
-                            shared_view_state.executed_commands.current_parsed_parameter =
-                                Some(command_data.to_string())
-                        }
-                        Err(err) => {
-                            shared_view_state.executed_commands.current_parsed_error =
-                                Some(err.to_string())
-                        }
-                    },
-                    None => (),
+            if let Some(in_type) = shared_view_state.executed_commands.current_command_in_type {
+                match parse_command_data(current_param.as_str(), in_type) {
+                    Ok(command_data) => {
+                        shared_view_state.executed_commands.current_parsed_parameter =
+                            Some(command_data.to_string())
+                    }
+                    Err(err) => {
+                        shared_view_state.executed_commands.current_parsed_error =
+                            Some(err.to_string())
+                    }
                 }
             }
-            None => (),
         }
     }
 
@@ -123,7 +119,7 @@ impl ViewConfirmCommand {
                     .executed_commands
                     .current_command
                     .clone()
-                    .unwrap_or("".to_string())
+                    .unwrap_or_else(|| "".to_string())
             )),
             Spans::from(""),
             Spans::from(format!("With paramater : {}", parsed_command)),
@@ -181,7 +177,6 @@ impl Draw for ViewConfirmCommand {
             .clone()
         {
             self.draw_confirm(f, area, shared_view_state, param);
-            return;
         }
     }
 
@@ -195,14 +190,20 @@ impl Draw for ViewConfirmCommand {
     }
 }
 
-impl From<usize> for ViewConfirmCommand {
-    fn from(_item: usize) -> Self {
-        ViewConfirmCommand::new()
-    }
-}
+// impl From<usize> for ViewConfirmCommand {
+//     fn from(_item: usize) -> Self {
+//         ViewConfirmCommand::new()
+//     }
+// }
 
-impl Into<usize> for ViewConfirmCommand {
-    fn into(self) -> usize {
+// impl Into<usize> for ViewConfirmCommand {
+//     fn into(self) -> usize {
+//         3
+//     }
+// }
+
+impl From<ViewConfirmCommand> for usize {
+    fn from(_item: ViewConfirmCommand) -> usize {
         3
     }
 }

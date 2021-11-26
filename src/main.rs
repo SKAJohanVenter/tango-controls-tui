@@ -6,7 +6,6 @@ mod tango_utils;
 mod views;
 
 use app::App;
-use clap;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode, KeyEvent},
     execute,
@@ -44,10 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Parse args
     let matches = parse_commandline_args();
     let tick_rate = matches.value_of("tick_rate").unwrap().parse::<u64>()?;
-    let enhanced_graphics = match matches.value_of("enhanced_graphics") {
-        Some(_) => true,
-        None => false,
-    };
+    let enhanced_graphics = matches.value_of("enhanced_graphics").is_some();
 
     //Set up logging
     let log_config = build_log_config(&matches)?;
@@ -78,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // Setup     handling
+    // Setup message handling
     let (tx, rx) = mpsc::channel();
     let tx_watch_list = tx.clone();
     let tx_commands = tx.clone();
@@ -99,10 +95,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             if last_tick.elapsed() >= tick_rate_duration {
-                match tx.send(Event::Tick) {
-                    Ok(_) => {}
-                    Err(_) => {}
-                }
+                if tx.send(Event::Tick).is_ok() {}
                 last_tick = Instant::now();
             }
         }
@@ -180,37 +173,37 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn validate_tick_rate(v: &str) -> Result<u64, String> {
+fn validate_tick_rate(v: String) -> Result<(), String> {
     match v.parse::<u64>() {
-        Ok(parsed_val) => Ok(parsed_val),
+        Ok(_) => Ok(()),
         Err(_) => Err("Tick rate should be a number".to_string()),
     }
 }
 
-fn parse_commandline_args() -> clap::ArgMatches {
+fn parse_commandline_args() -> clap::ArgMatches<'static> {
     clap::App::new("tango-controls-tui")
         .version("0.0.1")
         .author("Johan Venter <a.johan.venter@gmail.com>")
         .about("A terminal application to explore Tango devices")
         .arg(
-            clap::Arg::new("tick_rate")
-                .short('t')
+            clap::Arg::with_name("tick_rate")
+                .short("t")
                 .long("tick-rate")
-                .about("The refresh rate")
+                .help("The refresh rate")
                 .validator(validate_tick_rate)
                 .default_value("250"),
         )
         .arg(
-            clap::Arg::new("enhanced_graphics")
-                .short('e')
+            clap::Arg::with_name("enhanced_graphics")
+                .short("e")
                 .long("enhanced-graphics")
-                .about("Whether to use unicode symbols for better rendering"),
+                .help("Whether to use unicode symbols for better rendering"),
         )
         .arg(
-            clap::Arg::new("logfile_path")
-                .short('l')
+            clap::Arg::with_name("logfile_path")
+                .short("l")
                 .long("logfile")
-                .about("The path to the log file. If not specified logs will be sent to stderr")
+                .help("The path to the log file. If not specified logs will be sent to stderr")
                 .takes_value(true),
         )
         .get_matches()

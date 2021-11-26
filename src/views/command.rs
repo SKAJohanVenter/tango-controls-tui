@@ -309,8 +309,8 @@ impl From<usize> for ViewCommand {
     }
 }
 
-impl Into<usize> for ViewCommand {
-    fn into(self) -> usize {
+impl From<ViewCommand> for usize {
+    fn from(_item: ViewCommand) -> usize {
         2
     }
 }
