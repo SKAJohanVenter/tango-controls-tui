@@ -294,6 +294,9 @@ pub fn parse_command_data(
         TangoDataType::String => CommandData::from_str(data),
         TangoDataType::CharArray => {
             let ca: Vec<u8> = data.as_bytes().to_vec();
+            if ca.is_empty() {
+                return Err(anyhow!("A value is required").into())
+            }
             CommandData::CharArray(ca)
         }
         TangoDataType::ShortArray => {
@@ -302,6 +305,9 @@ pub fn parse_command_data(
             for c in strip_c.iter() {
                 let parsed_c: i16 = c.parse()?;
                 sa.push(parsed_c);
+            }
+            if sa.is_empty() {
+                return Err(anyhow!("A value is required").into())
             }
             CommandData::ShortArray(sa)
         }
@@ -312,6 +318,9 @@ pub fn parse_command_data(
                 let parsed_c: i32 = c.parse()?;
                 longa.push(parsed_c);
             }
+            if longa.is_empty() {
+                return Err(anyhow!("A value is required").into())
+            }
             CommandData::LongArray(longa)
         }
         TangoDataType::FloatArray => {
@@ -320,6 +329,9 @@ pub fn parse_command_data(
             for c in strip_c.iter() {
                 let parsed_c: f32 = c.parse()?;
                 fa.push(parsed_c);
+            }
+            if fa.is_empty() {
+                return Err(anyhow!("A value is required").into())
             }
             CommandData::FloatArray(fa)
         }
@@ -330,6 +342,9 @@ pub fn parse_command_data(
                 let parsed_c: f64 = c.parse()?;
                 da.push(parsed_c);
             }
+            if da.is_empty() {
+                return Err(anyhow!("A value is required").into())
+            }
             CommandData::DoubleArray(da)
         }
         TangoDataType::UShortArray => {
@@ -339,6 +354,9 @@ pub fn parse_command_data(
                 let parsed_c: u16 = c.parse()?;
                 usa.push(parsed_c);
             }
+            if usa.is_empty() {
+                return Err(anyhow!("A value is required").into())
+            }
             CommandData::UShortArray(usa)
         }
         TangoDataType::ULongArray => {
@@ -347,6 +365,9 @@ pub fn parse_command_data(
             for c in strip_c.iter() {
                 let parsed_c: u32 = c.parse()?;
                 ula.push(parsed_c);
+            }
+            if ula.is_empty() {
+                return Err(anyhow!("A value is required").into())
             }
             CommandData::ULongArray(ula)
         }
@@ -382,6 +403,9 @@ pub fn parse_command_data(
                     _ => ba.push(false),
                 }
             }
+            if ba.is_empty() {
+                return Err(anyhow!("A value is required").into())
+            }
             CommandData::BooleanArray(ba)
         }
         TangoDataType::Long64 => {
@@ -399,6 +423,9 @@ pub fn parse_command_data(
                 let parsed_c: i64 = c.parse()?;
                 la.push(parsed_c);
             }
+            if la.is_empty() {
+                return Err(anyhow!("A value is required").into())
+            }
             CommandData::Long64Array(la)
         }
         TangoDataType::ULong64Array => {
@@ -407,6 +434,9 @@ pub fn parse_command_data(
             for c in strip_c.iter() {
                 let parsed_c: u64 = c.parse()?;
                 la.push(parsed_c);
+            }
+            if la.is_empty() {
+                return Err(anyhow!("A value is required").into())
             }
             CommandData::ULong64Array(la)
         }
