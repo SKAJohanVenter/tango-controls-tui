@@ -114,7 +114,6 @@ impl fmt::Display for View {
     }
 }
 
-// #[derive(Debug)]
 pub enum ViewType<'a> {
     Explorer(ViewExplorerHome<'a>),
     WatchList(ViewWatchList),
@@ -216,7 +215,8 @@ pub trait Draw {
         f.render_widget(tango_host_text, chunks[0]);
 
         let program_name_text = Paragraph::new(format!(
-            "{}\nTANGO_HOST: {}", REPO,
+            "{}\nTANGO_HOST: {}",
+            REPO,
             shared_view_state
                 .tango_host
                 .as_ref()
@@ -224,7 +224,6 @@ pub trait Draw {
         ))
         .style(Style::default().fg(Color::LightCyan))
         .alignment(Alignment::Right);
-        // .block(Block::default().style(Style::default().fg(Color::White)));
         f.render_widget(program_name_text, chunks[1]);
     }
 
@@ -356,11 +355,10 @@ pub trait Draw {
             .margin(0)
             .constraints(
                 [
-                    Constraint::Length(2), // TANGO HOST
+                    Constraint::Length(2), // TANGO HOST, Repo, version, name
                     Constraint::Length(6), // Instructions
                     Constraint::Length(3), // Tabs
                     Constraint::Min(2),    // Explorer
-                                           // Constraint::Length(3), // Messages
                 ]
                 .as_ref(),
             )
@@ -370,6 +368,5 @@ pub trait Draw {
         self.draw_menu(f, chunks[1], shared_view_state);
         self.draw_tabs(f, chunks[2], tab_index);
         self.draw_body(f, chunks[3], shared_view_state);
-        // self.draw_footer(f, chunks[4]);
     }
 }

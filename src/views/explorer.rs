@@ -3,7 +3,6 @@ use crate::tango_utils::{
     GetTreeItems,
 };
 use crate::views::{Draw, MenuOption, SharedViewState};
-// use tui-tree-widget::
 use crate::stateful_tree::StatefulTree;
 use crate::tango_utils::TangoDevicesLookup;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -96,7 +95,6 @@ impl<'a> ViewExplorerHome<'a> {
                                         name: comm.name.clone(),
                                         in_type: Some(comm.in_type),
                                     },
-                                    // format!("{}", comm.name),
                                     Row::new(vec![
                                         comm.name,
                                         format!("{:?}", comm.in_type),
@@ -394,7 +392,6 @@ impl Draw for ViewExplorerHome<'_> {
     fn handle_event(
         &mut self,
         key_event: &KeyEvent,
-        // tango_devices_lookup: &TangoDevicesLookup,
         shared_view_state: &mut SharedViewState,
     ) -> usize {
         if self.focus == Focus::Left {

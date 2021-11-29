@@ -101,30 +101,21 @@ impl ViewWatchList {
         }
 
         let table = Table::new(table_items)
-            // You can set the style of the entire Table.
             .style(Style::default().fg(Color::White))
-            // It has an optional header, which is simply a Row always visible at the top.
             .header(
                 Row::new(header)
                     .style(Style::default().fg(Color::LightCyan))
-                    // If you want some space between the header and the rest of the rows, you can always
-                    // specify some margin at the bottom.
                     .bottom_margin(1),
             )
-            // As any other widget, a Table can be wrapped in a Block.
             .block(Block::default().title(""))
-            // Columns widths are constrained in the same way as Layout...
             .widths(&widths)
-            // ...and they can be separated by a fixed spacing.
             .column_spacing(1)
-            // If you wish to highlight a row in any specific way when it is selected...
             .highlight_style(
                 Style::default()
                     .fg(Color::Black)
                     .bg(Color::LightGreen)
                     .add_modifier(Modifier::BOLD),
             )
-            // ...and potentially show a symbol in front of the selection.
             .highlight_symbol(">>");
 
         f.render_stateful_widget(table, area, &mut self.stateful_table.clone());

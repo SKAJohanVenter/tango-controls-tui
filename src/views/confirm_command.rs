@@ -6,8 +6,8 @@ use crossterm::event::{KeyCode, KeyEvent};
 use std::convert::From;
 use tui::{
     backend::Backend,
+    layout::Alignment,
     layout::Rect,
-    layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
@@ -190,47 +190,8 @@ impl Draw for ViewConfirmCommand {
     }
 }
 
-// impl From<usize> for ViewConfirmCommand {
-//     fn from(_item: usize) -> Self {
-//         ViewConfirmCommand::new()
-//     }
-// }
-
-// impl Into<usize> for ViewConfirmCommand {
-//     fn into(self) -> usize {
-//         3
-//     }
-// }
-
 impl From<ViewConfirmCommand> for usize {
     fn from(_item: ViewConfirmCommand) -> usize {
         3
     }
-}
-
-// From https://github.com/fdehau/tui-rs/blob/master/examples/popup.rs
-fn _centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
 }

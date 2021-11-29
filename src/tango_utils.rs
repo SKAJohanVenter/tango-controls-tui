@@ -175,7 +175,6 @@ pub fn read_attribute(
     attribute_name: &str,
 ) -> Result<Option<AttributeData>, Box<dyn Error>> {
     let mut dp = DeviceProxy::new(device_name)?;
-    // let value = dp.read_attribute(attribute_name)?;
     let attribute_data = match dp.read_attribute(attribute_name) {
         Ok(ad) => Some(ad),
         Err(err) => {
@@ -249,7 +248,6 @@ pub fn split_strip_string(data: &str) -> Vec<String> {
         .trim_matches(']')
         .replace(",", ",  ");
     let split_w: Vec<&str> = cleaned_string.trim().split_whitespace().collect();
-    // let split_w: Vec<&str> = split_a.iter().filter(|s| !s.is_empty()).collect::<Vec<_>>();
     // Remove comma
     let mut strip_c: Vec<String> = split_w
         .iter()

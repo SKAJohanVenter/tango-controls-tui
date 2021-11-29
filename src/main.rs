@@ -1,6 +1,5 @@
 mod app;
 
-// mod ui;
 mod stateful_tree;
 mod tango_utils;
 mod views;
@@ -135,7 +134,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     loop {
         terminal.draw(|f| app.draw(f))?;
-        // println!("{:#?}", app.tango_devices_lookup);
         match rx.recv()? {
             Event::Input(event) => match event.code {
                 KeyCode::Esc => {

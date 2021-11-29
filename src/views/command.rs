@@ -24,7 +24,6 @@ use super::{MenuOption, View};
 #[derive(Debug)]
 enum Focus {
     Input,
-    // Messages, TODO
 }
 
 impl Default for Focus {
@@ -135,21 +134,6 @@ impl ViewCommand {
                 .is_some()
         {
             match key_event.code {
-                // KeyCode::Up => match self.focus {
-                //     Focus::Input => self.focus = Focus::Messages,
-                //     Focus::Messages => {
-                //         self.focus = Focus::Input;
-                //     }
-                // },
-                // KeyCode::Down => match self.focus {
-                //     Focus::Input => {
-                //         if self.input == paramater_string {
-                //             self.input.clear();
-                //         }
-                //         self.focus = Focus::Messages;
-                //     }
-                //     Focus::Messages => self.focus = Focus::Input,
-                // },
                 KeyCode::Left | KeyCode::Right => {
                     if self.input == paramater_string {
                         self.input.clear();
@@ -165,7 +149,7 @@ impl ViewCommand {
                             Some(self.input.clone());
                         shared_view_state.executed_commands.current_device =
                             shared_view_state.selected_device.clone();
-                    } // Focus::Messages => {} TODO
+                    }
                 },
                 KeyCode::Char(c) => match self.focus {
                     Focus::Input => {
@@ -173,7 +157,7 @@ impl ViewCommand {
                             self.input.clear();
                         }
                         self.input.push(c);
-                    } // Focus::Messages => {} TODO
+                    }
                 },
                 KeyCode::Backspace => match self.focus {
                     Focus::Input => {
@@ -181,7 +165,7 @@ impl ViewCommand {
                             self.input.clear();
                         }
                         self.input.pop();
-                    } // Focus::Messages => {} TODO
+                    }
                 },
                 _ => {}
             }
@@ -196,7 +180,6 @@ impl ViewCommand {
     ) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            // .margin(2)
             .constraints([Constraint::Length(3), Constraint::Min(1)].as_ref())
             .split(area);
 
@@ -224,7 +207,7 @@ impl ViewCommand {
             match self.focus {
                 Focus::Input => {
                     f.set_cursor(chunks[0].x + self.input.len() as u16 + 1, chunks[0].y + 1);
-                } // Focus::Messages => {} TODO
+                }
             };
             input
         };
