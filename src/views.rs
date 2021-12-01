@@ -13,7 +13,7 @@ use watchlist::ViewWatchList;
 
 use crate::tango_utils::TangoDevicesLookup;
 use crate::views::watchlist::AttributeReading;
-use crate::{Event, REPO, VERSION};
+use crate::{Event, WEBSITE, VERSION};
 use crossterm::event::KeyEvent;
 use std::hash::Hash;
 use tui::symbols::line::DOUBLE_VERTICAL;
@@ -216,7 +216,7 @@ pub trait Draw {
 
         let program_name_text = Paragraph::new(format!(
             "{}\nTANGO_HOST: {}",
-            REPO,
+            WEBSITE,
             shared_view_state
                 .tango_host
                 .as_ref()

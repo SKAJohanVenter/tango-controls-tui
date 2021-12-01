@@ -39,7 +39,7 @@ pub enum Event {
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const REPO: &str = env!("CARGO_PKG_REPOSITORY");
+const WEBSITE: &str = "http://tangocontrolstui.org";
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Parse args

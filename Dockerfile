@@ -1,20 +1,32 @@
-FROM ubuntu:20.04 as build
+FROM debian:bookworm-slim as build
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -y git curl wget build-essential omniidl libomniorb4-dev libcos4-dev libomnithread4-dev libzmq3-dev python3
+RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -y git wget curl cmake build-essential git libcos4-dev libomniorb4-dev libomnithread4-dev libzmq3-dev omniidl python3 pkg-config
 RUN apt-get install -y --reinstall ca-certificates
 
-# Newer cmake
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.20.3/cmake-3.20.3.tar.gz
-RUN tar -xzvf cmake-3.20.3.tar.gz
-RUN cd cmake-3.20.3 && /cmake-3.20.3/bootstrap && make -j$(nproc) && make install
+# latest cmake
+RUN git clone --depth 1 --branch v3.22.0 https://github.com/Kitware/CMake cmake
+RUN mkdir /cmake/build
+RUN cd /cmake/build && ../bootstrap && make -j$(nproc) && make install
 
-# tango-idl
-RUN git clone  https://gitlab.com/tango-controls/tango-idl /tango-idl
-RUN mkdir /tango-idl/build && cd /tango-idl/build && cmake .. && make install
+# libzmq
+RUN git clone --depth 1 --branch v4.2.0 https://github.com/zeromq/libzmq
+RUN mkdir /libzmq/build
+RUN cd /libzmq/build && cmake -DENABLE_DRAFTS=OFF -DWITH_DOC=OFF -DZMQ_BUILD_TESTS=OFF .. && make -j$(nproc) && make install
+
+# cppzmq
+RUN git clone --depth 1 --branch v4.7.1 https://github.com/zeromq/cppzmq
+RUN mkdir /cppzmq/build
+RUN cd /cppzmq/build && cmake -DCPPZMQ_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local .. && make -j$(nproc) && make install
+
+# Tango IDL
+RUN git clone --depth 1 https://gitlab.com/tango-controls/tango-idl
+RUN cd tango-idl
+RUN mkdir /tango-idl/build
+RUN cd /tango-idl/build && cmake .. && make install
 
 # cppTango
-RUN git clone  https://gitlab.com/tango-controls/cppTango /cppTango
+RUN git clone --depth 1 https://gitlab.com/tango-controls/cppTango
 RUN mkdir /cppTango/build
 RUN cd /cppTango/build && cmake .. && make -j$(nproc) && make install
 
@@ -27,7 +39,7 @@ WORKDIR /tango-controls-tui
 RUN /root/.cargo/bin/cargo build --release
 RUN mv /tango-controls-tui/target/release/tango-controls-tui /usr/local/bin/
 
-FROM ubuntu:20.04
+FROM debian:bookworm-slim
 ENV LD_LIBRARY_PATH=/usr/local/lib
 COPY --from=build /usr/local/lib /usr/local/lib
 COPY --from=build /usr/local/bin /usr/local/bin
