@@ -1,8 +1,6 @@
-# tango-controls-tui
+# Tango Controls TUI
 
 TUI to explore Tango devices
-
-![Features](docs/img/controls.gif)
 
 ## Features
 
@@ -16,8 +14,21 @@ TUI to explore Tango devices
     - Type
     - Format
     - Description
-- Add an attribute to the watchlist
+- Watch attribute values
     - The attribute will be polled and its value displayed
+- Execute commands
+
+### Browse attributes and commands
+
+![Attributes and commands](docs/img/commands_attributes.gif)
+
+### Watch attribute values
+
+![Attributes](docs/img/attributes.gif)
+
+### Execute commands
+
+![Commands](docs/img/commands.gif)
 
 ## Limitations
 
