@@ -54,7 +54,7 @@ TUI to explore Tango devices
 - [x] Watch attributes
 - [ ] Add tests
 - [ ] Add ability to remove attribute from watchlist
-- [ ] Execute commands (`void`, `int` and `str` parameter types)
+- [x] Execute commands (`void`, `int` and `str` parameter types)
 
 ## Compiling
 
