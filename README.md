@@ -2,6 +2,14 @@
 
 TUI to explore Tango devices
 
+## Limitations
+
+- WARNING: If your device has attributes of type ENUM it _will_ crash the application if you expand it in the device list.
+  - `tango-rs` does not support it.
+- Not all attribute types are able to be displayed in the watchlist.
+- Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly
+- Events are not supported
+
 ## Features
 
 - Browse the running Tango devices in a tree structure
@@ -17,6 +25,7 @@ TUI to explore Tango devices
 - Watch attribute values
     - The attribute will be polled and its value displayed
 - Execute commands
+    - Not all argument types are supported
 
 ### Browse attributes and commands
 
@@ -29,14 +38,6 @@ TUI to explore Tango devices
 ### Execute commands
 
 ![Commands](docs/img/commands.gif)
-
-## Limitations
-
-- WARNING: If your device has attributes of type ENUM it _will_ crash the application if you expand it in the device list.
-  - `tango-rs` does not support it.
-- Not all attribute types are able to be displayed in the watchlist.
-- Attributes in the watchlist are polled sequentially. Thus values may be missed for attributes that update quickly
-- Events are not supported
 
 ## Known Issues
 
@@ -99,6 +100,6 @@ docker build . -t <TAG_NAME> -f ./Dockerfile
 ### Run with `kubectl`
 
 ```
-kubectl run tui --rm  -it --image=ajohanv/tango-controls-tui:0.0.1 --restart=Never -n <NAMESPACE> --env="TANGO_HOST=<TANGO_HOST>:10000" /bin/bash
+kubectl run tui --rm  -it --image=ajohanv/tango-controls-tui:0.0.3 --restart=Never -n <NAMESPACE> --env="TANGO_HOST=<TANGO_HOST>:10000" /bin/bash
 root@tui3:/# tango-controls-tui -l t.log
 ```

@@ -183,7 +183,7 @@ fn validate_tick_rate(v: String) -> Result<(), String> {
 
 fn parse_commandline_args() -> clap::ArgMatches<'static> {
     clap::App::new("tango-controls-tui")
-        .version("0.0.1")
+        .version("0.0.3")
         .author("Johan Venter <a.johan.venter@gmail.com>")
         .about("A terminal application to explore Tango devices")
         .arg(
