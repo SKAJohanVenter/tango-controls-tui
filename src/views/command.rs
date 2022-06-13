@@ -198,7 +198,7 @@ impl ViewCommand {
                 .is_none()
         {
             // No device or command
-            let input = Paragraph::new("Please select a device and command")
+            let input = Paragraph::new("Please select a device and command from the explorer menu")
                 .block(Block::default().borders(Borders::ALL).title(title));
             input
         } else {
