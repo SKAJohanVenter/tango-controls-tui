@@ -184,7 +184,7 @@ fn parse_commandline_args() -> clap::ArgMatches {
             clap::Arg::new("tick_rate")
                 .short('t')
                 .long("tick-rate")
-                .about("The refresh rate")
+                // .about("The refresh rate")
                 .validator(validate_tick_rate)
                 .default_value("250"),
         )
@@ -192,13 +192,13 @@ fn parse_commandline_args() -> clap::ArgMatches {
             clap::Arg::new("enhanced_graphics")
                 .short('e')
                 .long("enhanced-graphics")
-                .about("Whether to use unicode symbols for better rendering"),
+                // .about("Whether to use unicode symbols for better rendering"),
         )
         .arg(
             clap::Arg::new("logfile_path")
                 .short('l')
                 .long("logfile")
-                .about("The path to the log file. If not specified logs will be sent to stderr")
+                // .about("The path to the log file. If not specified logs will be sent to stderr")
                 .takes_value(true),
         )
         .get_matches()

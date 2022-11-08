@@ -1,9 +1,8 @@
 use log::error;
 use std::{collections::BTreeMap, error::Error};
-use tango_client::{
-    AttrDataFormat, AttrValue, AttributeData, AttributeInfo, CommandInfo, DatabaseProxy,
-    DeviceProxy,
-};
+use tango_controls_client_sys::database_proxy::DatabaseProxy;
+use tango_controls_client_sys::device_proxy::DeviceProxy;
+use tango_controls_client_sys::types::{AttrValue, AttributeData, AttributeInfo, CommandInfo};
 use tui_tree_widget::TreeItem;
 
 pub struct DeviceAttribute {
@@ -118,9 +117,8 @@ impl<'a> TangoDevicesLookup<'a> {
 
     pub fn get_all_tango_devices() -> Result<Vec<String>, Box<dyn Error>> {
         let dbp = DatabaseProxy::new()?;
-        let dbdatum = dbp.get_device_exported("*")?;
-        let devices_string = dbdatum.data.to_string();
-        Ok(Self::split_devices_list(&devices_string))
+        let devices_string = dbp.get_device_exported("*")?;
+        Ok(devices_string)
     }
 
     pub fn split_devices_list<S: AsRef<str>>(devices_string: S) -> Vec<String> {
@@ -176,23 +174,13 @@ pub fn read_attribute(
     device_name: &str,
     attribute_name: &str,
 ) -> Result<Option<AttributeData>, Box<dyn Error>> {
-    let mut dp = DeviceProxy::new(device_name)?;
-    // let value = dp.read_attribute(attribute_name)?;
-    let attribute_data = match dp.read_attribute(&attribute_name) {
-        Ok(ad) => Some(ad),
-        Err(err) => {
-            error!(
-                "Reading conversion error for {}/{}: {}",
-                device_name, attribute_name, err
-            );
-            None
-        }
-    };
-    Ok(attribute_data)
+    let dp = DeviceProxy::new(device_name)?;
+    let value = dp.read_attribute(attribute_name)?;
+    Ok(Some(value))
 }
 
 pub fn get_attribute_list(device_name: &str) -> Result<Vec<DeviceAttribute>, Box<dyn Error>> {
-    let mut dp = DeviceProxy::new(device_name)?;
+    let dp = DeviceProxy::new(device_name)?;
     let attributes = dp.attribute_list_query()?;
     let mut device_attributes: Vec<DeviceAttribute> = Vec::new();
 
@@ -238,8 +226,8 @@ pub fn display_attribute_type(attr_data_option: Option<AttributeData>) -> String
             AttrValue::Float(_) => "Float".to_string(),
             AttrValue::Double(_) => "Double".to_string(),
             AttrValue::String(_) => "String".to_string(),
-            AttrValue::State(_) => "State".to_string(),
-            AttrValue::Encoded(_) => "Encoded".to_string(),
+            AttrValue::DevState(_) => "State".to_string(),
+            AttrValue::DevEncoded(_) => "Encoded".to_string(),
             AttrValue::BooleanArray(_) => "BooleanArray".to_string(),
             AttrValue::UCharArray(_) => "UCharArray".to_string(),
             AttrValue::ShortArray(_) => "ShortArray".to_string(),
@@ -251,18 +239,16 @@ pub fn display_attribute_type(attr_data_option: Option<AttributeData>) -> String
             AttrValue::FloatArray(_) => "FloatArray".to_string(),
             AttrValue::DoubleArray(_) => "DoubleArray".to_string(),
             AttrValue::StringArray(_) => "StringArray".to_string(),
-            AttrValue::StateArray(_) => "StateArray".to_string(),
-            AttrValue::EncodedArray(_) => "EncodedArray".to_string(),
+            AttrValue::DevStateArray(_) => "StateArray".to_string(),
+            AttrValue::DevEncodedArray(_) => "EncodedArray".to_string(),
+            AttrValue::DevEnum(_) => "Enum".to_string(),
+            AttrValue::DevEnumArray(_) => "EnumArray".to_string(),
         },
     }
 }
 
-pub fn display_attribute_format(attr_type: AttrDataFormat) -> String {
-    match attr_type {
-        AttrDataFormat::Scalar => "Scalar".to_string(),
-        AttrDataFormat::Spectrum => "Spectrum".to_string(),
-        AttrDataFormat::Image => "Image".to_string(),
-    }
+pub fn display_attribute_format() -> String {
+    "ATTF FORMAT".to_string()
 }
 
 #[test]

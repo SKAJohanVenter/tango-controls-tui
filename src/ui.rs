@@ -68,7 +68,7 @@
 // }
 
 // fn draw_header<B: Backend>(f: &mut Frame<B>, area: Rect) {
-//     let tango_host_text = Paragraph::new("TANGO_HOST: abcd:10000")
+//     let tango_host_text = Paragraph::new("TANGO_HOST: abcd:10001")
 //         .style(Style::default().fg(Color::LightCyan))
 //         .alignment(Alignment::Left)
 //         .block(Block::default().style(Style::default().fg(Color::White)));

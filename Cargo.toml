@@ -8,7 +8,8 @@ edition = "2018"
 crossterm = { version = "0.19"}
 tui = { version = "0.14", default-features = false, features = ['crossterm'] }
 clap = "3.0.0-beta.2"
-tango-client = "0.2.3"
+# tango-client = "0.2.3"
+tango-controls-client-sys = { git = "https://gitlab.com/jventer/tango-controls-client-sys", rev="3f3c89315c153327a5e3e8022af9fe24a68f89b6" }
 unicode-width = "0.1"
 tui-tree-widget = "0.4.0"
 log = "0.4.14"

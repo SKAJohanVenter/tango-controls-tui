@@ -83,9 +83,9 @@ impl<'a> ViewExplorerHome<'a> {
                         Ok(commands) => {
                             for comm in commands {
                                 self.stateful_table_items.push((
-                                    format!("{}", comm.name),
+                                    format!("{}", comm.cmd_name),
                                     Row::new(vec![
-                                        comm.name,
+                                        comm.cmd_name,
                                         format!("{:?}", comm.in_type),
                                         format!("{:?}", comm.out_type),
                                     ]),
@@ -114,7 +114,7 @@ impl<'a> ViewExplorerHome<'a> {
                                     Row::new(vec![
                                         attr.attribute_info.name,
                                         display_attribute_type(attr.attribute_data),
-                                        display_attribute_format(attr.attribute_info.data_format),
+                                        display_attribute_format(),
                                         attr.attribute_info.description,
                                     ]),
                                 ));
