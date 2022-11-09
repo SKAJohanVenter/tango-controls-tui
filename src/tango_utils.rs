@@ -178,7 +178,7 @@ pub fn read_attribute(
     device_name: &str,
     attribute_name: &str,
 ) -> Result<Option<AttributeData>, Box<dyn Error>> {
-    let mut dp = DeviceProxy::new(device_name)?;
+    let dp = DeviceProxy::new(device_name)?;
     let attribute_data = match dp.read_attribute(attribute_name) {
         Ok(ad) => Some(ad),
         Err(err) => {
@@ -237,7 +237,7 @@ pub fn execute_tango_command(
     command_name: &str,
     paramater: &str,
 ) -> Result<CommandData, Box<dyn Error>> {
-    let mut dp = DeviceProxy::new(device_name)?;
+    let dp = DeviceProxy::new(device_name)?;
     let command_info = get_command_details(&dp, command_name)?;
     let parsed_paramater = parse_command_data(paramater, command_info.in_type)?;
     let res = dp.command_inout(command_name, parsed_paramater)?;
