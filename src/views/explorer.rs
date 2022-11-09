@@ -1,13 +1,13 @@
+use crate::stateful_tree::StatefulTree;
+use crate::tango_utils::TangoDevicesLookup;
 use crate::tango_utils::{
     display_attribute_format, display_attribute_type, get_attribute_list, get_command_list,
     GetTreeItems,
 };
 use crate::views::{Draw, MenuOption, SharedViewState};
-use crate::stateful_tree::StatefulTree;
-use crate::tango_utils::TangoDevicesLookup;
 use crossterm::event::{KeyCode, KeyEvent};
 use std::convert::From;
-use tango_client::TangoDataType;
+use tango_controls_client_sys::types::CmdArgType;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -34,7 +34,7 @@ enum DeviceDisplay {
 #[derive(Default, Clone)]
 pub struct RowId {
     name: String,
-    in_type: Option<TangoDataType>,
+    in_type: Option<CmdArgType>,
 }
 
 pub struct ViewExplorerHome<'a> {
@@ -92,11 +92,11 @@ impl<'a> ViewExplorerHome<'a> {
                             for comm in commands {
                                 self.stateful_table_items.push((
                                     RowId {
-                                        name: comm.name.clone(),
+                                        name: comm.cmd_name.clone(),
                                         in_type: Some(comm.in_type),
                                     },
                                     Row::new(vec![
-                                        comm.name,
+                                        comm.cmd_name,
                                         format!("{:?}", comm.in_type),
                                         format!("{:?}", comm.out_type),
                                     ]),

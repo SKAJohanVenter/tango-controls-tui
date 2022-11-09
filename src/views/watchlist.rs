@@ -27,20 +27,12 @@ impl AttributeReading {
     pub fn update(&mut self, device_name: &str, attr_name: &str) -> &mut AttributeReading {
         if let AttributeReading::Value(_) = self {
             match tango_utils::read_attribute(device_name, attr_name) {
-                Ok(attr_data_option) => {
-                    match attr_data_option {
-                        Some(attr_data) => {
-                            match attr_data.data.into_string() {
-                                Ok(val) => *self = AttributeReading::Value(val),
-                                // Looks like err is a valid value ?
-                                Err(err) => *self = AttributeReading::Value(format!("{}", err)),
-                            }
-                        }
-                        None => {
-                            *self = AttributeReading::Value("Error reading attribute".to_string());
-                        }
+                Ok(attr_data_option) => match attr_data_option {
+                    Some(attr_data) => *self = AttributeReading::Value(attr_data.data.to_string()),
+                    None => {
+                        *self = AttributeReading::Value("Error reading attribute".to_string());
                     }
-                }
+                },
                 Err(err) => {
                     *self = AttributeReading::Error("Reading of type unsupported".to_string());
                     error!(

@@ -1,7 +1,12 @@
 use anyhow::anyhow;
 use log::error;
 use std::{collections::BTreeMap, error::Error};
-use tango_client::*;
+use tango_controls_client_sys::database_proxy::DatabaseProxy;
+use tango_controls_client_sys::device_proxy::DeviceProxy;
+use tango_controls_client_sys::types::{
+    AttrDataFormat, AttrValue, AttributeData, AttributeInfo, CmdArgType, CommandData, CommandInfo,
+    DevState,
+};
 use tui_tree_widget::TreeItem;
 
 pub struct DeviceAttribute {
@@ -117,8 +122,7 @@ impl<'a> TangoDevicesLookup<'a> {
     pub fn get_all_tango_devices() -> Result<Vec<String>, Box<dyn Error>> {
         let dbp = DatabaseProxy::new()?;
         let dbdatum = dbp.get_device_exported("*")?;
-        let devices_string = dbdatum.data.to_string();
-        Ok(Self::split_devices_list(&devices_string))
+        Ok(dbdatum)
     }
 
     pub fn split_devices_list<S: AsRef<str>>(devices_string: S) -> Vec<String> {
@@ -259,47 +263,47 @@ pub fn split_strip_string(data: &str) -> Vec<String> {
 
 pub fn parse_command_data(
     data: &str,
-    data_type: TangoDataType,
+    data_type: CmdArgType,
 ) -> Result<CommandData, Box<dyn Error>> {
     let res = match data_type {
-        TangoDataType::Void => CommandData::Void,
-        TangoDataType::Boolean => match data {
+        CmdArgType::DevVoid => CommandData::Void,
+        CmdArgType::DevBoolean => match data {
             "True" | "true" | "1" => CommandData::Boolean(true),
             _ => CommandData::Boolean(false),
         },
-        TangoDataType::Short => {
+        CmdArgType::DevShort => {
             let short: i16 = data.parse()?;
             CommandData::Short(short)
         }
-        TangoDataType::Long => {
+        CmdArgType::DevLong => {
             let long: i32 = data.parse()?;
             CommandData::Long(long)
         }
-        TangoDataType::Float => {
+        CmdArgType::DevFloat => {
             let float: f32 = data.parse()?;
             CommandData::Float(float)
         }
-        TangoDataType::Double => {
+        CmdArgType::DevDouble => {
             let double: f64 = data.parse()?;
             CommandData::Double(double)
         }
-        TangoDataType::UShort => {
+        CmdArgType::DevUShort => {
             let ushort: u16 = data.parse()?;
             CommandData::UShort(ushort)
         }
-        TangoDataType::ULong => {
+        CmdArgType::DevULong => {
             let ulong: u32 = data.parse()?;
             CommandData::ULong(ulong)
         }
-        TangoDataType::String => CommandData::from_str(data),
-        TangoDataType::CharArray => {
+        CmdArgType::DevString => CommandData::String(data.to_string()),
+        CmdArgType::DevVarCharArray => {
             let ca: Vec<u8> = data.as_bytes().to_vec();
             if ca.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::CharArray(ca)
         }
-        TangoDataType::ShortArray => {
+        CmdArgType::DevVarShortArray => {
             let strip_c = split_strip_string(data);
             let mut sa: Vec<i16> = Vec::new();
             for c in strip_c.iter() {
@@ -307,11 +311,11 @@ pub fn parse_command_data(
                 sa.push(parsed_c);
             }
             if sa.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::ShortArray(sa)
         }
-        TangoDataType::LongArray => {
+        CmdArgType::DevVarLongArray => {
             let strip_c = split_strip_string(data);
             let mut longa: Vec<i32> = Vec::new();
             for c in strip_c.iter() {
@@ -319,11 +323,11 @@ pub fn parse_command_data(
                 longa.push(parsed_c);
             }
             if longa.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::LongArray(longa)
         }
-        TangoDataType::FloatArray => {
+        CmdArgType::DevVarFloatArray => {
             let strip_c = split_strip_string(data);
             let mut fa: Vec<f32> = Vec::new();
             for c in strip_c.iter() {
@@ -331,11 +335,11 @@ pub fn parse_command_data(
                 fa.push(parsed_c);
             }
             if fa.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::FloatArray(fa)
         }
-        TangoDataType::DoubleArray => {
+        CmdArgType::DevVarDoubleArray => {
             let strip_c = split_strip_string(data);
             let mut da: Vec<f64> = Vec::new();
             for c in strip_c.iter() {
@@ -343,11 +347,11 @@ pub fn parse_command_data(
                 da.push(parsed_c);
             }
             if da.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::DoubleArray(da)
         }
-        TangoDataType::UShortArray => {
+        CmdArgType::DevVarUShortArray => {
             let strip_c = split_strip_string(data);
             let mut usa: Vec<u16> = Vec::new();
             for c in strip_c.iter() {
@@ -355,11 +359,11 @@ pub fn parse_command_data(
                 usa.push(parsed_c);
             }
             if usa.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::UShortArray(usa)
         }
-        TangoDataType::ULongArray => {
+        CmdArgType::DevVarULongArray => {
             let strip_c = split_strip_string(data);
             let mut ula: Vec<u32> = Vec::new();
             for c in strip_c.iter() {
@@ -367,34 +371,34 @@ pub fn parse_command_data(
                 ula.push(parsed_c);
             }
             if ula.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::ULongArray(ula)
         }
-        TangoDataType::State => {
+        CmdArgType::DevState => {
             let state = match data {
-                "ON" => Ok(TangoDevState::On),
-                "OFF" => Ok(TangoDevState::Off),
-                "CLOSE" => Ok(TangoDevState::Close),
-                "OPEN" => Ok(TangoDevState::Open),
-                "INSERT" => Ok(TangoDevState::Insert),
-                "EXTRACT" => Ok(TangoDevState::Extract),
-                "MOVING" => Ok(TangoDevState::Moving),
-                "STANDBY" => Ok(TangoDevState::Standby),
-                "FAULT" => Ok(TangoDevState::Fault),
-                "INIT" => Ok(TangoDevState::Init),
-                "RUNNING" => Ok(TangoDevState::Running),
-                "ALARM" => Ok(TangoDevState::Alarm),
-                "DISABLE" => Ok(TangoDevState::Disable),
-                "UNKNOWN" => Ok(TangoDevState::Unknown),
+                "ON" => Ok(DevState::ON),
+                "OFF" => Ok(DevState::OFF),
+                "CLOSE" => Ok(DevState::CLOSE),
+                "OPEN" => Ok(DevState::OPEN),
+                "INSERT" => Ok(DevState::INSERT),
+                "EXTRACT" => Ok(DevState::EXTRACT),
+                "MOVING" => Ok(DevState::MOVING),
+                "STANDBY" => Ok(DevState::STANDBY),
+                "FAULT" => Ok(DevState::FAULT),
+                "INIT" => Ok(DevState::INIT),
+                "RUNNING" => Ok(DevState::RUNNING),
+                "ALARM" => Ok(DevState::ALARM),
+                "DISABLE" => Ok(DevState::DISABLE),
+                "UNKNOWN" => Ok(DevState::UNKNOWN),
                 _ => return Err(anyhow!("State not recognised").into()),
             };
             match state {
-                Ok(res) => CommandData::State(res),
+                Ok(res) => CommandData::DevState(res),
                 Err(err) => err,
             }
         }
-        TangoDataType::BooleanArray => {
+        CmdArgType::DevVarBooleanArray => {
             let strip_c = split_strip_string(data);
             let mut ba: Vec<bool> = Vec::new();
             for c in strip_c.iter().map(|s| s.as_str()) {
@@ -404,19 +408,19 @@ pub fn parse_command_data(
                 }
             }
             if ba.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::BooleanArray(ba)
         }
-        TangoDataType::Long64 => {
+        CmdArgType::DevLong64 => {
             let long64: i64 = data.parse()?;
             CommandData::Long64(long64)
         }
-        TangoDataType::ULong64 => {
+        CmdArgType::DevULong64 => {
             let long: u64 = data.parse()?;
             CommandData::ULong64(long)
         }
-        TangoDataType::Long64Array => {
+        CmdArgType::DevVarLong64Array => {
             let strip_c = split_strip_string(data);
             let mut la: Vec<i64> = Vec::new();
             for c in strip_c.iter() {
@@ -424,11 +428,11 @@ pub fn parse_command_data(
                 la.push(parsed_c);
             }
             if la.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::Long64Array(la)
         }
-        TangoDataType::ULong64Array => {
+        CmdArgType::DevVarULong64Array => {
             let strip_c = split_strip_string(data);
             let mut la: Vec<u64> = Vec::new();
             for c in strip_c.iter() {
@@ -436,7 +440,7 @@ pub fn parse_command_data(
                 la.push(parsed_c);
             }
             if la.is_empty() {
-                return Err(anyhow!("A value is required").into())
+                return Err(anyhow!("A value is required").into());
             }
             CommandData::ULong64Array(la)
         }
@@ -460,8 +464,8 @@ pub fn display_attribute_type(attr_data_option: Option<AttributeData>) -> String
             AttrValue::Float(_) => "Float".to_string(),
             AttrValue::Double(_) => "Double".to_string(),
             AttrValue::String(_) => "String".to_string(),
-            AttrValue::State(_) => "State".to_string(),
-            AttrValue::Encoded(_) => "Encoded".to_string(),
+            AttrValue::DevState(_) => "State".to_string(),
+            AttrValue::DevEncoded(_) => "Encoded".to_string(),
             AttrValue::BooleanArray(_) => "BooleanArray".to_string(),
             AttrValue::UCharArray(_) => "UCharArray".to_string(),
             AttrValue::ShortArray(_) => "ShortArray".to_string(),
@@ -473,17 +477,20 @@ pub fn display_attribute_type(attr_data_option: Option<AttributeData>) -> String
             AttrValue::FloatArray(_) => "FloatArray".to_string(),
             AttrValue::DoubleArray(_) => "DoubleArray".to_string(),
             AttrValue::StringArray(_) => "StringArray".to_string(),
-            AttrValue::StateArray(_) => "StateArray".to_string(),
-            AttrValue::EncodedArray(_) => "EncodedArray".to_string(),
+            AttrValue::DevStateArray(_) => "StateArray".to_string(),
+            AttrValue::DevEncodedArray(_) => "EncodedArray".to_string(),
+            AttrValue::DevEnum(_) => "DevEnum".to_string(),
+            AttrValue::DevEnumArray(_) => "DevEnumArray".to_string(),
         },
     }
 }
 
 pub fn display_attribute_format(attr_type: AttrDataFormat) -> String {
     match attr_type {
-        AttrDataFormat::Scalar => "Scalar".to_string(),
-        AttrDataFormat::Spectrum => "Spectrum".to_string(),
-        AttrDataFormat::Image => "Image".to_string(),
+        AttrDataFormat::SCALAR => "Scalar".to_string(),
+        AttrDataFormat::SPECTRUM => "Spectrum".to_string(),
+        AttrDataFormat::IMAGE => "Image".to_string(),
+        _ => "Unknown".to_string(),
     }
 }
 
@@ -559,122 +566,122 @@ mod tango_tests {
 
     #[test]
     fn test_command_param_parse() {
-        use tango_client::{CommandData, TangoDataType};
+        use tango_controls_client_sys::types::{CmdArgType, CommandData};
 
         let tests = vec![
             (
                 "Void",
-                parse_command_data("", TangoDataType::Void),
+                parse_command_data("", CmdArgType::DevVoid),
                 CommandData::Void,
             ),
             (
                 "Boolean",
-                parse_command_data("true", TangoDataType::Boolean),
+                parse_command_data("true", CmdArgType::DevBoolean),
                 CommandData::Boolean(true),
             ),
             (
                 "Short",
-                parse_command_data("-147", TangoDataType::Short),
+                parse_command_data("-147", CmdArgType::DevShort),
                 CommandData::Short(-147),
             ),
             (
                 "Long",
-                parse_command_data("-1048576", TangoDataType::Long),
+                parse_command_data("-1048576", CmdArgType::DevLong),
                 CommandData::Long(-(1 << 20)),
             ),
             (
                 "Float",
-                parse_command_data("42.42", TangoDataType::Float),
+                parse_command_data("42.42", CmdArgType::DevFloat),
                 CommandData::Float(42.42),
             ),
             (
                 "Double",
-                parse_command_data("123.456790123752", TangoDataType::Double),
+                parse_command_data("123.456790123752", CmdArgType::DevDouble),
                 CommandData::Double(123.456790123752),
             ),
             (
                 "UShort",
-                parse_command_data("137", TangoDataType::UShort),
+                parse_command_data("137", CmdArgType::DevUShort),
                 CommandData::UShort(137),
             ),
             (
                 "ULong",
-                parse_command_data("1048576", TangoDataType::ULong),
+                parse_command_data("1048576", CmdArgType::DevULong),
                 CommandData::ULong(1 << 20),
             ),
             (
                 "Long64",
-                parse_command_data("-1152921504606846976", TangoDataType::Long64),
+                parse_command_data("-1152921504606846976", CmdArgType::DevLong64),
                 CommandData::Long64(-(1 << 60)),
             ),
             (
                 "ULong64",
-                parse_command_data("1152921504606846976", TangoDataType::ULong64),
+                parse_command_data("1152921504606846976", CmdArgType::DevULong64),
                 CommandData::ULong64(1 << 60),
             ),
             (
                 "String",
-                parse_command_data("some_str_ing", TangoDataType::String),
-                CommandData::from_str("some_str_ing"),
+                parse_command_data("some_str_ing", CmdArgType::DevString),
+                CommandData::String("some_str_ing".to_string()),
             ),
             (
                 "CharArray",
-                parse_command_data("1 5 7", TangoDataType::CharArray),
+                parse_command_data("1 5 7", CmdArgType::DevVarCharArray),
                 CommandData::CharArray(vec![1, 5, 7]),
             ),
             (
                 "CharArrayComma",
-                parse_command_data("1, 5, 7", TangoDataType::CharArray),
+                parse_command_data("1, 5, 7", CmdArgType::DevVarCharArray),
                 CommandData::CharArray(vec![1, 5, 7]),
             ),
             (
                 "CharArrayBrackets",
-                parse_command_data("[1, 5, 7]", TangoDataType::CharArray),
+                parse_command_data("[1, 5, 7]", CmdArgType::DevVarCharArray),
                 CommandData::CharArray(vec![1, 5, 7]),
             ),
             (
                 "CharArraySpaces",
-                parse_command_data("  [  1  ,   5  ,   7  ]  ", TangoDataType::CharArray),
+                parse_command_data("  [  1  ,   5  ,   7  ]  ", CmdArgType::DevVarCharArray),
                 CommandData::CharArray(vec![1, 5, 7]),
             ),
             (
                 "ShortArray",
-                parse_command_data("-5, 1, 0", TangoDataType::ShortArray),
+                parse_command_data("-5, 1, 0", CmdArgType::DevVarShortArray),
                 CommandData::ShortArray(vec![-5, 1, 0]),
             ),
             (
                 "UShortArray",
-                parse_command_data("5, 1, 0", TangoDataType::UShortArray),
+                parse_command_data("5, 1, 0", CmdArgType::DevVarUShortArray),
                 CommandData::UShortArray(vec![5, 1, 0]),
             ),
             (
                 "LongArray",
-                parse_command_data("-1048576, 1, 0", TangoDataType::LongArray),
+                parse_command_data("-1048576, 1, 0", CmdArgType::DevVarLongArray),
                 CommandData::LongArray(vec![-(1 << 20), 1, 0]),
             ),
             (
                 "ULongArray",
-                parse_command_data("1073741824, 1, 0", TangoDataType::ULongArray),
+                parse_command_data("1073741824, 1, 0", CmdArgType::DevVarULongArray),
                 CommandData::ULongArray(vec![1 << 30, 1, 0]),
             ),
             (
                 "Long64Array",
-                parse_command_data("-1152921504606846976, 1, 0", TangoDataType::Long64Array),
+                parse_command_data("-1152921504606846976, 1, 0", CmdArgType::DevVarLong64Array),
                 CommandData::Long64Array(vec![-(1 << 60), 1, 0]),
             ),
             (
                 "ULong64Array",
-                parse_command_data("1152921504606846976, 1, 0", TangoDataType::ULong64Array),
+                parse_command_data("1152921504606846976, 1, 0", CmdArgType::DevVarULong64Array),
                 CommandData::ULong64Array(vec![1 << 60, 1, 0]),
             ),
             (
                 "FloatArray",
-                parse_command_data("-42.4, 0.0, 80.123", TangoDataType::FloatArray),
+                parse_command_data("-42.4, 0.0, 80.123", CmdArgType::DevVarFloatArray),
                 CommandData::FloatArray(vec![-42.4, 0.0, 80.123]),
             ),
             (
                 "DoubleArray",
-                parse_command_data("-5.0, 1.0, 0.0", TangoDataType::DoubleArray),
+                parse_command_data("-5.0, 1.0, 0.0", CmdArgType::DevVarDoubleArray),
                 CommandData::DoubleArray(vec![-5.0, 1.0, 0.0]),
             ),
         ];
@@ -692,80 +699,80 @@ mod tango_tests {
         // test all types
         println!("\nTesting commands for all data types:");
         let tests = vec![
-            ("DevVoid", parse_command_data("", TangoDataType::Void)),
+            ("DevVoid", parse_command_data("", CmdArgType::DevVoid)),
             (
                 "DevBoolean",
-                parse_command_data("true", TangoDataType::Boolean),
+                parse_command_data("true", CmdArgType::DevBoolean),
             ),
-            ("DevShort", parse_command_data("-147", TangoDataType::Short)),
+            ("DevShort", parse_command_data("-147", CmdArgType::DevShort)),
             (
                 "DevLong",
-                parse_command_data("-1048576", TangoDataType::Long),
+                parse_command_data("-1048576", CmdArgType::DevLong),
             ),
             (
                 "DevFloat",
-                parse_command_data("42.42", TangoDataType::Float),
+                parse_command_data("42.42", CmdArgType::DevFloat),
             ),
             (
                 "DevDouble",
-                parse_command_data("123.456790123752", TangoDataType::Double),
+                parse_command_data("123.456790123752", CmdArgType::DevDouble),
             ),
             (
                 "DevUShort",
-                parse_command_data("137", TangoDataType::UShort),
+                parse_command_data("137", CmdArgType::DevUShort),
             ),
             (
                 "DevULong",
-                parse_command_data("1048576", TangoDataType::ULong),
+                parse_command_data("1048576", CmdArgType::DevULong),
             ),
             (
                 "DevLong64",
-                parse_command_data("-1152921504606846976", TangoDataType::Long64),
+                parse_command_data("-1152921504606846976", CmdArgType::DevLong64),
             ),
             (
                 "DevULong64",
-                parse_command_data("1152921504606846976", TangoDataType::ULong64),
+                parse_command_data("1152921504606846976", CmdArgType::DevULong64),
             ),
             (
                 "DevString",
-                parse_command_data("some_str_ing", TangoDataType::String),
+                parse_command_data("some_str_ing", CmdArgType::DevString),
             ),
-            ("DevString", parse_command_data("", TangoDataType::String)),
+            ("DevString", parse_command_data("", CmdArgType::DevString)),
             (
                 "DevVarCharArray",
-                parse_command_data("1 5 7", TangoDataType::CharArray),
+                parse_command_data("1 5 7", CmdArgType::DevVarCharArray),
             ),
             (
                 "DevVarShortArray",
-                parse_command_data("-5, 1, 0", TangoDataType::ShortArray),
+                parse_command_data("-5, 1, 0", CmdArgType::DevVarShortArray),
             ),
             (
                 "DevVarUShortArray",
-                parse_command_data("5, 1, 0", TangoDataType::UShortArray),
+                parse_command_data("5, 1, 0", CmdArgType::DevVarUShortArray),
             ),
             (
                 "DevVarLongArray",
-                parse_command_data("-1048576, 1, 0", TangoDataType::LongArray),
+                parse_command_data("-1048576, 1, 0", CmdArgType::DevVarLongArray),
             ),
             (
                 "DevVarULongArray",
-                parse_command_data("1073741824, 1, 0", TangoDataType::ULongArray),
+                parse_command_data("1073741824, 1, 0", CmdArgType::DevVarULongArray),
             ),
             (
                 "DevVarLong64Array",
-                parse_command_data("-1152921504606846976, 1, 0", TangoDataType::Long64Array),
+                parse_command_data("-1152921504606846976, 1, 0", CmdArgType::DevVarLong64Array),
             ),
             (
                 "DevVarULong64Array",
-                parse_command_data("1152921504606846976, 1, 0", TangoDataType::ULong64Array),
+                parse_command_data("1152921504606846976, 1, 0", CmdArgType::DevVarULong64Array),
             ),
             (
                 "DevVarFloatArray",
-                parse_command_data("-42.4, 0.0, 80.123", TangoDataType::FloatArray),
+                parse_command_data("-42.4, 0.0, 80.123", CmdArgType::DevVarFloatArray),
             ),
             (
                 "DevVarDoubleArray",
-                parse_command_data("-5.0, 1.0, 0.0", TangoDataType::DoubleArray),
+                parse_command_data("-5.0, 1.0, 0.0", CmdArgType::DevVarDoubleArray),
             ),
         ];
         for (cmd, data) in tests {
@@ -808,7 +815,7 @@ mod tango_tests {
             println!("Command: {}, Value: {}", cmd, data);
             let command_data_res = execute_tango_command("sys/tg_test/1", cmd, data);
             match command_data_res {
-                Ok(command_data) => println!("{}", command_data),
+                Ok(command_data) => println!("{:?}", command_data),
                 Err(err) => {
                     println!("{}", err);
                     return Err(err);

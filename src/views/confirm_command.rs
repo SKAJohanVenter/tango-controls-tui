@@ -41,7 +41,7 @@ impl ViewConfirmCommand {
                 match parse_command_data(current_param.as_str(), in_type) {
                     Ok(command_data) => {
                         shared_view_state.executed_commands.current_parsed_parameter =
-                            Some(command_data.to_string())
+                            Some(format!("{:?}", command_data))
                     }
                     Err(err) => {
                         shared_view_state.executed_commands.current_parsed_error =

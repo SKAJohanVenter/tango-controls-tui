@@ -7,7 +7,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use log::error;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{collections::BTreeMap, convert::From, sync::mpsc, thread};
-use tango_client::TangoDataType;
+use tango_controls_client_sys::types::CmdArgType;
 use tui::{
     backend::Backend,
     layout::Constraint,
@@ -44,7 +44,7 @@ pub struct ExecutedCommand {
 pub struct ExecutedCommands {
     pub executed_commands: BTreeMap<u128, ExecutedCommand>,
     pub current_command: Option<String>,
-    pub current_command_in_type: Option<TangoDataType>,
+    pub current_command_in_type: Option<CmdArgType>,
     pub current_parsed_parameter: Option<String>,
     pub current_parsed_error: Option<String>,
     pub current_parameter: Option<String>,
@@ -92,7 +92,7 @@ impl ExecutedCommands {
                 command.as_str(),
                 parameter.as_str(),
             ) {
-                Ok(command_data) => command_data.to_string(),
+                Ok(command_data) => format!("{:?}", command_data),
                 Err(err) => {
                     error!("Command Error {}", err);
                     err.to_string()
