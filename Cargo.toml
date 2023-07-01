@@ -8,7 +8,7 @@ repository = "https://github.com/SKAJohanVenter/tango-controls-tui"
 [dependencies]
 crossterm = "0.22.1"
 tui = { version = "0.16.0", default-features = false, features = ['crossterm'] }
-tango-controls-client-sys = { git = "https://gitlab.com/jventer/tango-controls-client-sys", rev="a2e9ad278ccaba67b7bfb9cdde2aeebfa5bcdcb7" }
+tango-controls-client-sys = { git = "https://gitlab.com/jventer/tango-controls-client-sys", rev="e45085b288306491426b882fea4d89347e99c010" }
 unicode-width = "0.1.9"
 tui-tree-widget = "0.7.0"
 log = "0.4.14"

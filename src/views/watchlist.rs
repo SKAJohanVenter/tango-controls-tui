@@ -28,7 +28,10 @@ impl AttributeReading {
         if let AttributeReading::Value(_) = self {
             match tango_utils::read_attribute(device_name, attr_name) {
                 Ok(attr_data_option) => match attr_data_option {
-                    Some(attr_data) => *self = AttributeReading::Value(attr_data.data.to_string()),
+                    // Some(attr_data) => *self = AttributeReading::Value(attr_data.data.to_string()),
+                    Some(attr_data) => {
+                        *self = AttributeReading::Value(format!("{}", attr_data.data))
+                    }
                     None => {
                         *self = AttributeReading::Value("Error reading attribute".to_string());
                     }

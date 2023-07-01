@@ -667,7 +667,7 @@ dependencies = [
 [[package]]
 name = "tango-controls-client-sys"
 version = "0.1.0"
-source = "git+https://gitlab.com/jventer/tango-controls-client-sys?rev=a2e9ad278ccaba67b7bfb9cdde2aeebfa5bcdcb7#a2e9ad278ccaba67b7bfb9cdde2aeebfa5bcdcb7"
+source = "git+https://gitlab.com/jventer/tango-controls-client-sys?rev=e45085b288306491426b882fea4d89347e99c010#e45085b288306491426b882fea4d89347e99c010"
 dependencies = [
  "anyhow",
  "cxx",

@@ -193,7 +193,7 @@ pub fn read_attribute(
 }
 
 pub fn get_attribute_list(device_name: &str) -> Result<Vec<DeviceAttribute>, Box<dyn Error>> {
-    let mut dp = DeviceProxy::new(device_name)?;
+    let dp = DeviceProxy::new(device_name)?;
     let attributes = dp.attribute_list_query()?;
     let mut device_attributes: Vec<DeviceAttribute> = Vec::new();
 
