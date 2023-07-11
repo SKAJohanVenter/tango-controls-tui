@@ -5,10 +5,7 @@ use crate::{
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use log::error;
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::{collections::BTreeMap, convert::From, sync::mpsc, thread};
-use tango_controls_client_sys::types::CmdArgType;
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::Constraint,
     layout::Direction,
@@ -18,18 +15,16 @@ use tui::{
     widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, TableState},
     Frame,
 };
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::{collections::BTreeMap, convert::From, sync::mpsc, thread};
+use tango_controls_client_sys::types::CmdArgType;
 
 use super::{MenuOption, View};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 enum Focus {
+    #[default]
     Input,
-}
-
-impl Default for Focus {
-    fn default() -> Self {
-        Focus::Input
-    }
 }
 
 #[derive(Debug)]

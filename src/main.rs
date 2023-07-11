@@ -20,6 +20,7 @@ use log4rs::{
     encode::pattern::PatternEncoder,
     filter::threshold::ThresholdFilter,
 };
+use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io::{self, stdout, Write};
 use std::{env, sync::Arc};
 use std::{
@@ -28,7 +29,6 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-use tui::{backend::CrosstermBackend, Terminal};
 use views::AttributeReadings;
 
 pub enum Event {

@@ -8,10 +8,10 @@ use crate::{tango_utils::TangoDevicesLookup, views::AttributeReadings};
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
+use ratatui::{backend::Backend, Frame};
 use std::error::Error;
 use std::sync::mpsc;
 use std::{collections::HashMap, env};
-use tui::{backend::Backend, Frame};
 
 pub struct App<'a> {
     pub title: &'a str,

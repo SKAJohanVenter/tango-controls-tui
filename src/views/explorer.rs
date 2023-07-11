@@ -6,16 +6,17 @@ use crate::tango_utils::{
 };
 use crate::views::{Draw, MenuOption, SharedViewState};
 use crossterm::event::{KeyCode, KeyEvent};
-use std::convert::From;
-use tango_controls_client_sys::types::CmdArgType;
-use tui::{
+use log::info;
+use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     widgets::{Block, Borders, Row, Table, TableState},
     Frame,
 };
-use tui_tree_widget::Tree;
+use ratatui_tree_widget::Tree;
+use std::convert::From;
+use tango_controls_client_sys::types::CmdArgType;
 
 use super::View;
 
@@ -162,8 +163,8 @@ impl<'a> ViewExplorerHome<'a> {
             None => String::from(""),
         };
         let selected_device = match self.device_display {
-            DeviceDisplay::Commands => format!(" Commands, selected: {}", selected_device),
-            DeviceDisplay::Attributes => format!(" Attributes, selected: {}", selected_device),
+            DeviceDisplay::Commands => format!(" Commands for device: {}", selected_device),
+            DeviceDisplay::Attributes => format!(" Attributes for device: {}", selected_device),
             DeviceDisplay::Empty => format!(" Selected: {}", selected_device),
         };
 
@@ -231,15 +232,16 @@ impl<'a> ViewExplorerHome<'a> {
     fn handle_event_left(&mut self, key_event: &KeyEvent, shared_view_state: &mut SharedViewState) {
         match key_event.code {
             KeyCode::Left => {
-                self.stateful_tree.close();
+                self.stateful_tree.left();
             }
             KeyCode::Right => {
-                self.stateful_tree.open();
+                self.stateful_tree.right();
+                // self.stateful_tree.open();
                 if shared_view_state.selected_device.is_some() {
                     self.focus = Focus::Right;
                     self.device_display = DeviceDisplay::Attributes;
                     self.populate_device_items(shared_view_state, DeviceDisplay::Attributes);
-                    self.stateful_table.select(Some(0));
+                    // self.stateful_table.select(Some(0));
                 } else {
                     self.populate_device_items(shared_view_state, DeviceDisplay::Empty);
                 }

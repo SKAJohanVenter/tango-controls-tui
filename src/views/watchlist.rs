@@ -1,8 +1,7 @@
 use crate::tango_utils;
 use crate::views::{Draw, SharedViewState};
 use log::error;
-use std::convert::From;
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::Constraint,
     layout::Rect,
@@ -10,6 +9,7 @@ use tui::{
     widgets::{Block, Row, Table, TableState},
     Frame,
 };
+use std::convert::From;
 
 #[derive(Debug, Clone)]
 pub enum AttributeReading {

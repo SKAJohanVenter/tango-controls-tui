@@ -3,16 +3,16 @@ use crate::{
     views::{Draw, SharedViewState},
 };
 use crossterm::event::{KeyCode, KeyEvent};
-use std::convert::From;
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::Alignment,
     layout::Rect,
     style::{Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
     Frame,
 };
+use std::convert::From;
 
 use super::View;
 
@@ -112,17 +112,17 @@ impl ViewConfirmCommand {
         };
 
         let text = vec![
-            Spans::from(Span::raw("")),
-            Spans::from(format!(
+            Line::from(Span::raw("")),
+            Line::from(format!(
                 "Execute command: {}",
                 shared_view_state
                     .executed_commands
                     .current_command
                     .clone()
-                    .unwrap_or_else(|| "".to_string())
+                    .unwrap_or_default()
             )),
-            Spans::from(""),
-            Spans::from(format!("With paramater : {}", parsed_command)),
+            Line::from(""),
+            Line::from(format!("With paramater : {}", parsed_command)),
         ];
 
         let paragraph = Paragraph::new(text)
@@ -142,7 +142,7 @@ impl ViewConfirmCommand {
             ))
         };
 
-        let text = vec![Spans::from(format!("Parameter Error: {}", err))];
+        let text = vec![Line::from(format!("Parameter Error: {}", err))];
 
         let paragraph = Paragraph::new(text)
             .block(create_block(" Error "))

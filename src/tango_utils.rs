@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use log::error;
+use ratatui_tree_widget::TreeItem;
 use std::{collections::BTreeMap, error::Error};
 use tango_controls_client_sys::database_proxy::DatabaseProxy;
 use tango_controls_client_sys::device_proxy::DeviceProxy;
@@ -7,7 +8,6 @@ use tango_controls_client_sys::types::{
     AttrDataFormat, AttrValue, AttributeData, AttributeInfo, CmdArgType, CommandData, CommandInfo,
     DevState,
 };
-use tui_tree_widget::TreeItem;
 
 pub struct DeviceAttribute {
     pub attribute_info: AttributeInfo,
@@ -23,10 +23,12 @@ pub struct Member {
 pub struct Family {
     pub members: BTreeMap<String, Member>,
 }
+
 #[derive(Debug, Default, Clone)]
 pub struct Domain {
     pub families: BTreeMap<String, Family>,
 }
+
 #[derive(Debug, Default, Clone)]
 pub struct TangoDevicesLookup<'a> {
     pub domains: BTreeMap<String, Domain>,
@@ -40,7 +42,7 @@ pub trait GetTreeItems<'a> {
 
 impl<'a> GetTreeItems<'a> for Member {
     fn get_tree_items(&self) -> Vec<TreeItem<'a>> {
-        return vec![TreeItem::new_leaf(self.device_name.clone())];
+        vec![TreeItem::new_leaf(self.device_name.clone())]
     }
 }
 
@@ -143,7 +145,7 @@ impl<'a> TangoDevicesLookup<'a> {
     pub fn build_map(&mut self, devices: &[String]) -> BTreeMap<String, Domain> {
         let mut domains = BTreeMap::default();
 
-        for device in devices.iter().cloned() {
+        for device in devices {
             let split_device: Vec<&str> = device.split('/').collect();
             if let [domain_key, family_key, member_key] = split_device[..] {
                 // Init the domains
@@ -250,12 +252,12 @@ pub fn split_strip_string(data: &str) -> Vec<String> {
         .trim()
         .trim_matches('[')
         .trim_matches(']')
-        .replace(",", ",  ");
-    let split_w: Vec<&str> = cleaned_string.trim().split_whitespace().collect();
+        .replace(',', ",  ");
+    let split_w: Vec<&str> = cleaned_string.split_whitespace().collect();
     // Remove comma
     let mut strip_c: Vec<String> = split_w
         .iter()
-        .map(|&s| s.replace(",", ""))
+        .map(|&s| s.replace(',', ""))
         .collect::<Vec<_>>();
     strip_c.retain(|s| !s.is_empty());
     strip_c

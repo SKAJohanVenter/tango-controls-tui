@@ -13,18 +13,18 @@ use watchlist::ViewWatchList;
 
 use crate::tango_utils::TangoDevicesLookup;
 use crate::views::watchlist::AttributeReading;
-use crate::{Event, WEBSITE, VERSION};
+use crate::{Event, VERSION, WEBSITE};
 use crossterm::event::KeyEvent;
-use std::hash::Hash;
-use tui::symbols::line::DOUBLE_VERTICAL;
-use tui::{
+use ratatui::symbols::line::DOUBLE_VERTICAL;
+use ratatui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, Tabs},
     Frame,
 };
+use std::hash::Hash;
 
 use self::command::ExecutedCommands;
 pub type DeviceName = String;
@@ -254,7 +254,7 @@ pub trait Draw {
             .into_iter()
             .map(|menu_option| {
                 Row::new(vec![
-                    Cell::from(Spans::from(vec![
+                    Cell::from(Line::from(vec![
                         Span::styled("<", Style::default().fg(Color::LightCyan)),
                         Span::styled(menu_option.key, Style::default().fg(Color::White)),
                         Span::styled(">", Style::default().fg(Color::LightCyan)),
@@ -291,7 +291,7 @@ pub trait Draw {
         let tab_titles = ["Explorer", "Watchlist", "Command"]
             .iter()
             .cloned()
-            .map(Spans::from)
+            .map(Line::from)
             .collect();
         let tabs = Tabs::new(tab_titles)
             .select(tab_index)
