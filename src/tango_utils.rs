@@ -299,7 +299,8 @@ pub fn parse_command_data(
         }
         CmdArgType::DevString => CommandData::String(data.to_string()),
         CmdArgType::DevVarCharArray => {
-            let ca: Vec<u8> = data.as_bytes().to_vec();
+            let s: Vec<char> = data.chars().into_iter().filter(|&c| c.is_numeric()).collect();
+            let ca: Vec<u8> = s.into_iter().map(|c| c as u8 - 48).collect();
             if ca.is_empty() {
                 return Err(anyhow!("A value is required").into());
             }
@@ -826,16 +827,16 @@ mod tango_tests {
         }
 
         let not_supported = vec![
-            ("DevVarStringArray", "[ab, c, d]", "StringArray"),
+            ("DevVarStringArray", "[ab, c, d]", "DevVarStringArray"),
             (
                 "DevVarLongStringArray",
                 "[-5, 1, 0, 1][ab, c]",
-                "LongStringArray",
+                "DevVarLongStringArray",
             ),
             (
                 "DevVarDoubleStringArray",
                 "[-5, 1, 0][ab, c]",
-                "DoubleStringArray",
+                "DevVarDoubleStringArray",
             ),
         ];
 
