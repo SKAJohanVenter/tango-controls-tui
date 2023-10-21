@@ -1,4 +1,4 @@
-use ratatui_tree_widget::{flatten, TreeItem, TreeState};
+use ratatui_tree_widget::{TreeItem, TreeState};
 
 pub struct StatefulTree<'a> {
     pub state: TreeState,
@@ -29,7 +29,7 @@ impl<'a> StatefulTree<'a> {
         self.state.key_up(&self.items)
     }
 
-    pub fn close(&mut self) {
+    pub fn _close(&mut self) {
         self.state.toggle_selected();
     }
 
@@ -41,7 +41,7 @@ impl<'a> StatefulTree<'a> {
         self.state.key_right();
     }
 
-    pub fn open(&mut self) {
+    pub fn _open(&mut self) {
         self.state.open(self.state.selected());
     }
 }

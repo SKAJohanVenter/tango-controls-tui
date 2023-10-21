@@ -17,15 +17,11 @@ use std::convert::From;
 use super::View;
 
 #[derive(Default, Debug)]
-pub struct ViewConfirmCommand {
-    input: String,
-}
+pub struct ViewConfirmCommand {}
 
 impl ViewConfirmCommand {
     pub fn new() -> ViewConfirmCommand {
-        ViewConfirmCommand {
-            input: String::from(""),
-        }
+        ViewConfirmCommand {}
     }
 
     pub fn update_param_values(&self, shared_view_state: &mut SharedViewState) {

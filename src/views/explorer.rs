@@ -6,7 +6,6 @@ use crate::tango_utils::{
 };
 use crate::views::{Draw, MenuOption, SharedViewState};
 use crossterm::event::{KeyCode, KeyEvent};
-use log::info;
 use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},

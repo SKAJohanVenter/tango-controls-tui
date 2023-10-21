@@ -12,7 +12,7 @@ use ratatui::{
     layout::Layout,
     layout::Rect,
     style::{Color, Style},
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, TableState},
+    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
     Frame,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -105,7 +105,6 @@ impl ExecutedCommands {
 
 #[derive(Default, Debug)]
 pub struct ViewCommand {
-    stateful_table: TableState,
     focus: Focus,
     input: String,
 }
@@ -113,7 +112,6 @@ pub struct ViewCommand {
 impl ViewCommand {
     pub fn new() -> ViewCommand {
         ViewCommand {
-            stateful_table: TableState::default(),
             focus: Focus::Input,
             input: String::from("< Enter parameter >"),
         }
