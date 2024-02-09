@@ -4,11 +4,15 @@ mod stateful_tree;
 mod tango_utils;
 mod views;
 
+use anyhow::Result;
 use app::App;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode, KeyEvent},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnableLineWrap, EnterAlternateScreen},
+    terminal::{
+        disable_raw_mode, enable_raw_mode, EnableLineWrap, EnterAlternateScreen,
+        LeaveAlternateScreen,
+    },
 };
 use log::{error, info};
 use log4rs::{
@@ -20,8 +24,10 @@ use log4rs::{
     encode::pattern::PatternEncoder,
     filter::threshold::ThresholdFilter,
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
-use std::io::{self, stdout, Write};
+use ratatui::{
+    backend::{Backend, CrosstermBackend},
+    Terminal,
+};
 use std::{env, sync::Arc};
 use std::{
     error::Error,
@@ -29,13 +35,17 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
+use std::{
+    io::{self, stdout, Write},
+    sync::mpsc::Receiver,
+};
 use views::AttributeReadings;
 
 pub enum Event {
     Input(KeyEvent),
     Tick,
     UpdateTangoDeviceReadings(AttributeReadings),
-    UpdateCommandResult(u128, String),
+    // UpdateCommandResult(u128, String),
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -103,7 +113,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = match App::new("Tango Controls TUI", enhanced_graphics, tx_commands) {
+    let app = match App::new("Tango Controls TUI", enhanced_graphics, tx_commands) {
         Ok(the_app) => the_app,
         Err(err) => {
             disable_raw_mode()?;
@@ -130,6 +140,29 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    let res = run_app(&mut terminal, app, rx);
+
+    // restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = res {
+        println!("{err:?}");
+    }
+
+    Ok(())
+}
+
+fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>,
+    mut app: App,
+    rx: Receiver<Event>,
+) -> Result<()> {
     terminal.clear()?;
 
     loop {
@@ -152,16 +185,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Event::UpdateTangoDeviceReadings(updated_device_value_map) => {
                 app.update_device_attr_map(updated_device_value_map);
-            }
-            Event::UpdateCommandResult(uuid, result) => {
-                if let Some(mut executed_command) = app
-                    .shared_view_state
-                    .executed_commands
-                    .executed_commands
-                    .get_mut(&uuid)
-                {
-                    executed_command.result = result;
-                }
             }
         }
 

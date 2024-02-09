@@ -1,14 +1,15 @@
-use crate::views::command::ViewCommand;
-use crate::views::confirm_command::ViewConfirmCommand;
+// use crate::views::command::ViewCommand;
+// use crate::views::confirm_command::ViewConfirmCommand;
 use crate::views::explorer::ViewExplorerHome;
 use crate::views::watchlist::ViewWatchList;
+// use crate::views::watchlist::ViewWatchList;
 use crate::views::{Draw, SharedViewState, View, ViewType};
 use crate::Event;
 use crate::{tango_utils::TangoDevicesLookup, views::AttributeReadings};
 
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
-use ratatui::{backend::Backend, Frame};
+use ratatui::Frame;
 use std::error::Error;
 use std::sync::mpsc;
 use std::{collections::HashMap, env};
@@ -53,14 +54,9 @@ impl<'a> App<'a> {
                 return Err(err);
             }
         };
+
         let watchlist_view = ViewType::WatchList(ViewWatchList::new());
         app.views.insert(View::WatchList, watchlist_view);
-
-        let command_view = ViewType::Command(ViewCommand::new());
-        app.views.insert(View::Command, command_view);
-
-        let confirm_view = ViewType::ConfirmCommand(ViewConfirmCommand::new());
-        app.views.insert(View::ConfirmCommand, confirm_view);
 
         Ok(app)
     }
@@ -77,12 +73,12 @@ impl<'a> App<'a> {
         match current_view {
             ViewType::Explorer(eh) => eh.handle_event(key_event, &mut self.shared_view_state),
             ViewType::WatchList(wl) => wl.handle_event(key_event, &mut self.shared_view_state),
-            ViewType::Command(co) => co.handle_event(key_event, &mut self.shared_view_state),
-            ViewType::ConfirmCommand(po) => po.handle_event(key_event, &mut self.shared_view_state),
+            // ViewType::Command(co) => co.handle_event(key_event, &mut self.shared_view_state),
+            // ViewType::ConfirmCommand(po) => po.handle_event(key_event, &mut self.shared_view_state),
         };
     }
 
-    pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) {
+    pub fn draw(&mut self, f: &mut Frame) {
         let view = self
             .views
             .get(&self.shared_view_state.current_view)
@@ -94,13 +90,6 @@ impl<'a> App<'a> {
             }
             ViewType::WatchList(wl) => {
                 wl.draw(f, &mut self.shared_view_state, view.into());
-            }
-
-            ViewType::Command(co) => {
-                co.draw(f, &mut self.shared_view_state, view.into());
-            }
-            ViewType::ConfirmCommand(po) => {
-                po.draw(f, &mut self.shared_view_state, view.into());
             }
         }
     }

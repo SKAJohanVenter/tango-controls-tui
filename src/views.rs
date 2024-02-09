@@ -3,21 +3,18 @@ pub mod confirm_command;
 pub mod explorer;
 pub mod watchlist;
 
-use command::ViewCommand;
-use confirm_command::ViewConfirmCommand;
 use explorer::ViewExplorerHome;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::{mpsc, Arc, Mutex};
 use watchlist::ViewWatchList;
 
-use crate::tango_utils::TangoDevicesLookup;
+use crate::tango_utils::{DeviceAttribute, Member, TangoDevicesLookup};
 use crate::views::watchlist::AttributeReading;
 use crate::{Event, VERSION, WEBSITE};
 use crossterm::event::KeyEvent;
 use ratatui::symbols::line::DOUBLE_VERTICAL;
 use ratatui::{
-    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
@@ -26,7 +23,6 @@ use ratatui::{
 };
 use std::hash::Hash;
 
-use self::command::ExecutedCommands;
 pub type DeviceName = String;
 pub type AttributeName = String;
 pub type AttributeReadings = BTreeMap<DeviceName, BTreeMap<AttributeName, AttributeReading>>;
@@ -40,18 +36,18 @@ pub struct SharedViewState<'a> {
     pub watch_list: Arc<Mutex<AttributeReadings>>,
     pub current_view: View,
     pub tango_devices_lookup: TangoDevicesLookup<'a>,
-    pub executed_commands: ExecutedCommands,
+    // pub executed_commands: ExecutedCommands,
 }
 
 impl SharedViewState<'_> {
-    pub fn new(tx_commands: mpsc::Sender<Event>) -> Self {
+    pub fn new(_tx_commands: mpsc::Sender<Event>) -> Self {
         Self {
             tango_host: None,
             selected_device: None,
             watch_list: Arc::default(),
             current_view: View::Explorer,
             tango_devices_lookup: TangoDevicesLookup::default(),
-            executed_commands: ExecutedCommands::new(tx_commands),
+            // executed_commands: ExecutedCommands::new(tx_commands),
         }
     }
 
@@ -85,20 +81,29 @@ impl SharedViewState<'_> {
             }
         }
     }
+
     pub fn toggle_current_view(&mut self) {
         match self.current_view {
-            View::Command => self.current_view = View::Explorer,
-            View::WatchList => self.current_view = View::Command,
+            View::WatchList => self.current_view = View::Explorer,
             View::Explorer => self.current_view = View::WatchList,
-            View::ConfirmCommand => self.current_view = View::Command,
         }
+    }
+
+    pub fn _attribute_by_member_ix(
+        &self,
+        member: &Member,
+        tree_indexes: &[usize],
+    ) -> Option<DeviceAttribute> {
+        let attr_ix = tree_indexes.get(4)?;
+        let attr = member.attributes.get(*attr_ix)?;
+        Some(attr.clone())
     }
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum View {
-    Command,
-    ConfirmCommand,
+    // Command,
+    // ConfirmCommand,
     WatchList,
     Explorer,
 }
@@ -106,8 +111,6 @@ pub enum View {
 impl fmt::Display for View {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            View::Command => write!(f, "Command"),
-            View::ConfirmCommand => write!(f, "ConfirmCommand"),
             View::WatchList => write!(f, "WatchList"),
             View::Explorer => write!(f, "Explorer"),
         }
@@ -117,8 +120,6 @@ impl fmt::Display for View {
 pub enum ViewType<'a> {
     Explorer(ViewExplorerHome<'a>),
     WatchList(ViewWatchList),
-    Command(ViewCommand),
-    ConfirmCommand(ViewConfirmCommand),
 }
 
 // The views are stored in a hashmap.
@@ -128,8 +129,6 @@ impl<'a> fmt::Display for ViewType<'a> {
         match self {
             ViewType::Explorer(_) => write!(f, "Explorer"),
             ViewType::WatchList(_) => write!(f, "Watchlist"),
-            ViewType::Command(_) => write!(f, "Command"),
-            ViewType::ConfirmCommand(_) => write!(f, "Popup"),
         }
     }
 }
@@ -139,8 +138,6 @@ impl From<&ViewType<'_>> for usize {
         match item {
             ViewType::Explorer(_) => 0,
             ViewType::WatchList(_) => 1,
-            ViewType::Command(_) => 2,
-            ViewType::ConfirmCommand(_) => 3,
         }
     }
 }
@@ -150,8 +147,6 @@ impl From<ViewType<'_>> for View {
         match val {
             ViewType::Explorer(_) => View::Explorer,
             ViewType::WatchList(_) => View::WatchList,
-            ViewType::Command(_) => View::Command,
-            ViewType::ConfirmCommand(_) => View::ConfirmCommand,
         }
     }
 }
@@ -161,8 +156,6 @@ impl From<&ViewType<'_>> for View {
         match val {
             ViewType::Explorer(_) => View::Explorer,
             ViewType::WatchList(_) => View::WatchList,
-            ViewType::Command(_) => View::Command,
-            ViewType::ConfirmCommand(_) => View::ConfirmCommand,
         }
     }
 }
@@ -191,12 +184,7 @@ pub trait Draw {
         vec![]
     }
 
-    fn draw_header<B: Backend>(
-        &self,
-        f: &mut Frame<B>,
-        area: Rect,
-        shared_view_state: &mut SharedViewState,
-    ) {
+    fn draw_header(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .margin(0)
@@ -209,7 +197,7 @@ pub trait Draw {
             )
             .split(area);
 
-        let tango_host_text = Paragraph::new(format!("Tango Controls Explorer GUI\nv{}", VERSION))
+        let tango_host_text = Paragraph::new(format!("Tango Controls Explorer TUI\nv{}", VERSION))
             .style(Style::default().fg(Color::LightCyan))
             .alignment(Alignment::Left);
         f.render_widget(tango_host_text, chunks[0]);
@@ -227,12 +215,7 @@ pub trait Draw {
         f.render_widget(program_name_text, chunks[1]);
     }
 
-    fn draw_menu<B: Backend>(
-        &self,
-        f: &mut Frame<B>,
-        area: Rect,
-        shared_view_state: &mut SharedViewState,
-    ) {
+    fn draw_menu(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
         let mut menu_items: Vec<MenuOption> = self.get_default_menu_items();
         menu_items.extend(self.get_view_menu_items(shared_view_state));
 
@@ -265,30 +248,30 @@ pub trait Draw {
             .collect();
 
         let left_rows: Vec<Row> = rows.iter().take(3).cloned().collect();
-        let left_table = Table::new(left_rows)
+        let widths = &[
+            Constraint::Length(10),
+            Constraint::Length(15),
+            Constraint::Length(15),
+        ];
+        let left_table = Table::new(left_rows, widths)
             .style(Style::default().fg(Color::White))
-            .widths(&[
-                Constraint::Length(10),
-                Constraint::Length(15),
-                Constraint::Length(15),
-            ])
             .column_spacing(1);
         f.render_widget(left_table, chunks[0]);
 
         let right_rows: Vec<Row> = rows.iter().skip(3).cloned().collect();
-        let right_table = Table::new(right_rows)
+        let widths = &[
+            Constraint::Length(10),
+            Constraint::Length(15),
+            Constraint::Length(15),
+        ];
+        let right_table = Table::new(right_rows, widths)
             .style(Style::default().fg(Color::White))
-            .widths(&[
-                Constraint::Length(10),
-                Constraint::Length(15),
-                Constraint::Length(15),
-            ])
             .column_spacing(1);
         f.render_widget(right_table, chunks[1]);
     }
 
-    fn draw_tabs<B: Backend>(&self, f: &mut Frame<B>, area: Rect, tab_index: usize) {
-        let tab_titles = ["Explorer", "Watchlist", "Command"]
+    fn draw_tabs(&self, f: &mut Frame, area: Rect, tab_index: usize) {
+        let tab_titles: Vec<Line> = ["Explorer", "Watchlist"]
             .iter()
             .cloned()
             .map(Line::from)
@@ -302,17 +285,12 @@ pub trait Draw {
         f.render_widget(tabs, area);
     }
 
-    fn draw_explorer<B: Backend>(
-        &self,
-        _f: &mut Frame<B>,
-        _area: Rect,
-        _shared_view_state: &mut SharedViewState,
-    ) {
+    fn draw_explorer(&self, _f: &mut Frame, _area: Rect, _shared_view_state: &mut SharedViewState) {
     }
 
-    fn draw_watchlist<B: Backend>(&self, _f: &mut Frame<B>, _area: Rect) {}
+    fn draw_watchlist(&self, _f: &mut Frame, _area: Rect) {}
 
-    fn draw_footer<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
+    fn draw_footer(&self, f: &mut Frame, area: Rect) {
         let footer = Paragraph::new("Tango Controls Explorer TUI")
             .style(Style::default().fg(Color::LightCyan))
             .alignment(Alignment::Center)
@@ -333,21 +311,18 @@ pub trait Draw {
         0
     }
 
-    fn draw_body<B: Backend>(
-        &self,
-        f: &mut Frame<B>,
-        area: Rect,
-        shared_view_state: &mut SharedViewState,
-    ) {
-        self.draw_explorer(f, area, shared_view_state);
+    fn draw_body(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
+        match shared_view_state.current_view {
+            View::WatchList => {
+                self.draw_explorer(f, area, shared_view_state);
+            }
+            View::Explorer => {
+                self.draw_explorer(f, area, shared_view_state);
+            }
+        }
     }
 
-    fn draw<B: Backend>(
-        &self,
-        f: &mut Frame<B>,
-        shared_view_state: &mut SharedViewState,
-        tab_index: usize,
-    ) {
+    fn draw(&self, f: &mut Frame, shared_view_state: &mut SharedViewState, tab_index: usize) {
         let size = f.size();
 
         let chunks = Layout::default()

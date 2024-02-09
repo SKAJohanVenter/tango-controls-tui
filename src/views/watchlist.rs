@@ -1,8 +1,8 @@
 use crate::tango_utils;
 use crate::views::{Draw, SharedViewState};
+use crossterm::event::{KeyCode, KeyEvent};
 use log::error;
 use ratatui::{
-    backend::Backend,
     layout::Constraint,
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -10,6 +10,8 @@ use ratatui::{
     Frame,
 };
 use std::convert::From;
+
+use super::MenuOption;
 
 #[derive(Debug, Clone)]
 pub enum AttributeReading {
@@ -61,12 +63,7 @@ impl ViewWatchList {
         }
     }
 
-    fn draw_table<B: Backend>(
-        &self,
-        f: &mut Frame<B>,
-        area: Rect,
-        shared_view_state: &mut SharedViewState,
-    ) {
+    fn draw_table(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
         let header = vec!["Device", "Attribute", "Value"];
         let widths = {
             let size_a = area.width / 6;
@@ -95,7 +92,7 @@ impl ViewWatchList {
             }
         }
 
-        let table = Table::new(table_items)
+        let table = Table::new(table_items, &widths)
             .style(Style::default().fg(Color::White))
             .header(
                 Row::new(header)
@@ -103,7 +100,6 @@ impl ViewWatchList {
                     .bottom_margin(1),
             )
             .block(Block::default().title(""))
-            .widths(&widths)
             .column_spacing(1)
             .highlight_style(
                 Style::default()
@@ -118,13 +114,28 @@ impl ViewWatchList {
 }
 
 impl Draw for ViewWatchList {
-    fn draw_body<B: Backend>(
-        &self,
-        f: &mut Frame<B>,
-        area: Rect,
-        shared_view_state: &mut SharedViewState,
-    ) {
+    fn get_view_menu_items(&self, _shared_view_state: &mut SharedViewState) -> Vec<MenuOption> {
+        let items = vec![MenuOption {
+            key: "c".to_string(),
+            description: "Clear list".to_string(),
+        }];
+        items
+    }
+
+    fn draw_body(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
         self.draw_table(f, area, shared_view_state);
+    }
+
+    fn handle_event(
+        &mut self,
+        key_event: &KeyEvent,
+        shared_view_state: &mut SharedViewState,
+    ) -> usize {
+        if let KeyCode::Char('c') = key_event.code {
+            let watch_l = &mut shared_view_state.watch_list.lock().unwrap();
+            watch_l.clear();
+        }
+        0
     }
 }
 

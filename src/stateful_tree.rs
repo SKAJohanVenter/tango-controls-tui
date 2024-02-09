@@ -1,8 +1,8 @@
-use ratatui_tree_widget::{TreeItem, TreeState};
+use tui_tree_widget::{TreeItem, TreeState};
 
 pub struct StatefulTree<'a> {
-    pub state: TreeState,
-    pub items: Vec<TreeItem<'a>>,
+    pub state: TreeState<String>,
+    pub items: Vec<TreeItem<'a, String>>,
 }
 
 impl<'a> StatefulTree<'a> {
@@ -14,7 +14,7 @@ impl<'a> StatefulTree<'a> {
         }
     }
 
-    pub fn with_items(items: Vec<TreeItem<'a>>) -> StatefulTree<'a> {
+    pub fn with_items(items: Vec<TreeItem<'a, String>>) -> StatefulTree<'a> {
         StatefulTree {
             state: TreeState::default(),
             items,
