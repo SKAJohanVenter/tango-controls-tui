@@ -58,7 +58,7 @@ impl SharedViewState<'_> {
                 .lock()
                 .unwrap()
                 .entry(current_device.clone())
-                .or_insert_with(BTreeMap::default);
+                .or_default();
             // Add the attribute if not present
             if let Some(attr_map) = self.watch_list.lock().unwrap().get_mut(current_device) {
                 attr_map

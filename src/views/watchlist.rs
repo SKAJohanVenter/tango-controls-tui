@@ -1,4 +1,4 @@
-use crate::tango_utils;
+use crate::attribute_utils;
 use crate::views::{Draw, SharedViewState};
 use crossterm::event::{KeyCode, KeyEvent};
 use log::error;
@@ -28,7 +28,7 @@ impl Default for AttributeReading {
 impl AttributeReading {
     pub fn update(&mut self, device_name: &str, attr_name: &str) -> &mut AttributeReading {
         if let AttributeReading::Value(_) = self {
-            match tango_utils::read_attribute(device_name, attr_name) {
+            match attribute_utils::read_attribute(device_name, attr_name) {
                 Ok(attr_data_option) => match attr_data_option {
                     // Some(attr_data) => *self = AttributeReading::Value(attr_data.data.to_string()),
                     Some(attr_data) => {

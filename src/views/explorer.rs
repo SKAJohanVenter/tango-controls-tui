@@ -13,7 +13,6 @@ use ratatui::{
 };
 
 use std::convert::From;
-use tango_controls_client_sys::types::CmdArgType;
 use tui_tree_widget::Tree;
 
 use super::View;
@@ -21,38 +20,22 @@ use super::View;
 #[derive(PartialEq)]
 enum Focus {
     Left,
-    Right,
-}
-// #[derive(PartialEq)]
-// enum DeviceDisplay {
-//     Commands,
-//     Attributes,
-//     Empty,
-// }
-
-#[derive(Default, Clone)]
-pub struct RowId {
-    name: String,
-    in_type: Option<CmdArgType>,
+    // Right,
 }
 
 pub struct ViewExplorerHome<'a> {
     stateful_tree: StatefulTree<'a>,
     focus: Focus,
     stateful_table: TableState,
-    stateful_table_items: Vec<(RowId, Row<'a>)>,
-}
+ }
 
 impl<'a> ViewExplorerHome<'a> {
     pub fn new(tdl: &TangoDevicesLookup<'a>) -> ViewExplorerHome<'a> {
         ViewExplorerHome {
             stateful_tree: StatefulTree::with_items(tdl.get_tree_items()),
-            // domains: tdl.domains.clone(),
-            focus: Focus::Left,
+             focus: Focus::Left,
             stateful_table: TableState::default(),
-            stateful_table_items: Vec::new(),
-            // device_display: DeviceDisplay::Empty,
-        }
+         }
     }
 
     fn draw_left(&self, f: &mut Frame, area: Rect, _shared_view_state: &mut SharedViewState) {
@@ -75,7 +58,6 @@ impl<'a> ViewExplorerHome<'a> {
     }
 
     fn populate_device_items(&mut self, _shared_view_state: &SharedViewState) {
-        self.stateful_table_items.clear();
         self.stateful_table.select(Some(0));
     }
 
@@ -184,16 +166,18 @@ impl From<ViewExplorerHome<'_>> for usize {
 
 impl Draw for ViewExplorerHome<'_> {
     fn get_view_menu_items(&self, _shared_view_state: &mut SharedViewState) -> Vec<MenuOption> {
-        let items = vec![
-            MenuOption {
-                key: "←,↑,→,↓".to_string(),
-                description: "Navigate tree".to_string(),
-            },
-            MenuOption {
-                key: "w".to_string(),
+        let selected_ix_vec = self.stateful_tree.state.selected();
+
+        let mut items = vec![MenuOption {
+            key: "←,↑,→,↓".to_string(),
+            description: "Navigate tree".to_string(),
+        }];
+        if selected_ix_vec.len() == 5 && selected_ix_vec[3] == "Attributes" {
+            items.push(MenuOption {
+                key: "w,ENTER".to_string(),
                 description: "Watch attribute".to_string(),
-            },
-        ];
+            })
+        }
         items
     }
 

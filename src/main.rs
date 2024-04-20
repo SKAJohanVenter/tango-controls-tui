@@ -1,5 +1,7 @@
 mod app;
 
+mod attribute_utils;
+mod command_utils;
 mod stateful_tree;
 mod tango_utils;
 mod views;
@@ -107,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             if last_tick.elapsed() >= tick_rate_duration {
-                if tx.send(Event::Tick).is_ok() {}
+                let _ = tx.send(Event::Tick).is_ok();
                 last_tick = Instant::now();
             }
         }
