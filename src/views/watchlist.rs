@@ -122,7 +122,7 @@ impl Draw for ViewWatchList {
         items
     }
 
-    fn draw_body(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
+    fn draw_body(&mut self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
         self.draw_table(f, area, shared_view_state);
     }
 

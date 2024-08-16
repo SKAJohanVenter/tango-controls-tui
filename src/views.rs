@@ -142,8 +142,26 @@ impl From<&ViewType<'_>> for usize {
     }
 }
 
+impl From<&mut ViewType<'_>> for usize {
+    fn from(item: &mut ViewType) -> Self {
+        match item {
+            ViewType::Explorer(_) => 0,
+            ViewType::WatchList(_) => 1,
+        }
+    }
+}
+
 impl From<ViewType<'_>> for View {
     fn from(val: ViewType<'_>) -> Self {
+        match val {
+            ViewType::Explorer(_) => View::Explorer,
+            ViewType::WatchList(_) => View::WatchList,
+        }
+    }
+}
+
+impl From<&mut ViewType<'_>> for View {
+    fn from(val: &mut ViewType<'_>) -> Self {
         match val {
             ViewType::Explorer(_) => View::Explorer,
             ViewType::WatchList(_) => View::WatchList,
@@ -285,12 +303,12 @@ pub trait Draw {
         f.render_widget(tabs, area);
     }
 
-    fn draw_explorer(&self, _f: &mut Frame, _area: Rect, _shared_view_state: &mut SharedViewState) {
+    fn draw_explorer(&mut self, _f: &mut Frame, _area: Rect, _shared_view_state: &mut SharedViewState) {
     }
 
-    fn draw_watchlist(&self, _f: &mut Frame, _area: Rect) {}
+    fn _draw_watchlist(&self, _f: &mut Frame, _area: Rect) {}
 
-    fn draw_footer(&self, f: &mut Frame, area: Rect) {
+    fn _draw_footer(&self, f: &mut Frame, area: Rect) {
         let footer = Paragraph::new("Tango Controls Explorer TUI")
             .style(Style::default().fg(Color::LightCyan))
             .alignment(Alignment::Center)
@@ -311,7 +329,7 @@ pub trait Draw {
         0
     }
 
-    fn draw_body(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
+    fn draw_body(&mut self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
         match shared_view_state.current_view {
             View::WatchList => {
                 self.draw_explorer(f, area, shared_view_state);
@@ -322,8 +340,8 @@ pub trait Draw {
         }
     }
 
-    fn draw(&self, f: &mut Frame, shared_view_state: &mut SharedViewState, tab_index: usize) {
-        let size = f.size();
+    fn draw(&mut self, f: &mut Frame, shared_view_state: &mut SharedViewState, tab_index: usize) {
+        let size = f.area();
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)

@@ -21,12 +21,12 @@ impl<'a> StatefulTree<'a> {
         }
     }
 
-    pub fn next(&mut self) {
-        self.state.key_down(&self.items)
+    pub fn next(&mut self) -> bool {
+        self.state.key_down()
     }
 
-    pub fn previous(&mut self) {
-        self.state.key_up(&self.items)
+    pub fn previous(&mut self) -> bool {
+        self.state.key_up()
     }
 
     pub fn _close(&mut self) {
@@ -41,7 +41,7 @@ impl<'a> StatefulTree<'a> {
         self.state.key_right();
     }
 
-    pub fn _open(&mut self) {
-        self.state.open(self.state.selected());
-    }
+    // pub fn _open(&mut self) {
+    //     self.state.open(self.state.selected());
+    // }
 }

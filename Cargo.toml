@@ -1,19 +1,19 @@
 [package]
 name = "tango-controls-tui"
-version = "0.0.3"
+version = "0.0.5"
 authors = ["Johan Venter <a.johan.venter@gmail.com>"]
 edition = "2021"
 repository = "https://github.com/SKAJohanVenter/tango-controls-tui"
 
 [dependencies]
-crossterm = "0.27.0"
-ratatui = { version = "0.26.0", default-features = false, features = ['crossterm'] }
-tango-controls-client-sys = { git = "https://gitlab.com/jventer/tango-controls-client-sys", rev="b66a6582199baa4b7f07e8b003a5786c5942a5cf" }
-unicode-width = "0.1.9"
-tui-tree-widget = "0.17.0"
-log = "0.4.14"
-log4rs = "1.0.0"
-anyhow = "1.0.48"
+crossterm = "0.28.1"
+ratatui = { version = "0.28.0", default-features = false, features = ['crossterm'] }
+tango-controls-client-sys = { git = "https://gitlab.com/jventer/tango-controls-client-sys", rev="fad1b5ae96293cc9be2f1a7e961eca3905e6cd22" }
+unicode-width = "0.1.13"
+tui-tree-widget = "0.22.0"
+log = "0.4.22"
+log4rs = "1.3.0"
+anyhow = "1.0.86"
 clap = "2.33.3"
 
 [features]

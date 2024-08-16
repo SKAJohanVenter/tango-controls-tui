@@ -4,11 +4,11 @@ use crate::tango_utils::{GetTreeItems, TreeSelection};
 use crate::views::{Draw, MenuOption, SharedViewState};
 use crossterm::event::{KeyCode, KeyEvent};
 
-use ratatui::widgets::Padding;
+use ratatui::widgets::{Block, Padding};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Row, Table, TableState},
+    widgets::{Borders, Row, Table, TableState},
     Frame,
 };
 
@@ -38,9 +38,9 @@ impl<'a> ViewExplorerHome<'a> {
          }
     }
 
-    fn draw_left(&self, f: &mut Frame, area: Rect, _shared_view_state: &mut SharedViewState) {
-        let b: Block<'_> = Block::default().borders(Borders::ALL).title("Device Tree");
-        let mut items = Tree::new(self.stateful_tree.items.to_vec())
+    fn draw_left(&mut self, f: &mut Frame, area: Rect, _shared_view_state: &mut SharedViewState) {
+        let b=  Block::default().borders(Borders::ALL).title("Device Tree");
+        let mut items = Tree::new(self.stateful_tree.items.as_ref())
             .unwrap()
             .block(b);
         if self.focus == Focus::Left {
@@ -54,7 +54,7 @@ impl<'a> ViewExplorerHome<'a> {
                 .highlight_symbol(">> ");
         }
 
-        f.render_stateful_widget(items, area, &mut self.stateful_tree.state.clone());
+        f.render_stateful_widget(items, area, &mut self.stateful_tree.state);
     }
 
     fn populate_device_items(&mut self, _shared_view_state: &SharedViewState) {
@@ -65,7 +65,7 @@ impl<'a> ViewExplorerHome<'a> {
         let selected_ix_vec = self.stateful_tree.state.selected();
         let tree_selection: TreeSelection = shared_view_state
             .tango_devices_lookup
-            .get_tree_selection(selected_ix_vec);
+            .get_tree_selection(selected_ix_vec.to_vec());
 
         let mut rows: Vec<Row> = Vec::new();
         let mut header = vec!["", ""];
@@ -143,7 +143,7 @@ impl<'a> ViewExplorerHome<'a> {
                 let selected_ix_vec = self.stateful_tree.state.selected();
                 let tree_selection: TreeSelection = shared_view_state
                     .tango_devices_lookup
-                    .get_tree_selection(selected_ix_vec);
+                    .get_tree_selection(selected_ix_vec.to_vec());
 
                 match tree_selection {
                     TreeSelection::Attribute(_, device_attribute) => {
@@ -190,7 +190,7 @@ impl Draw for ViewExplorerHome<'_> {
         0
     }
 
-    fn draw_explorer(&self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
+    fn draw_explorer(&mut self, f: &mut Frame, area: Rect, shared_view_state: &mut SharedViewState) {
         // area.width
         let length_left = area.width / 3;
         let length_right = area.width - length_left;

@@ -19,7 +19,7 @@ pub struct ExecutedCommand {
 }
 
 #[derive(Debug)]
-pub struct ExecutedCommands {
+pub struct _ExecutedCommands {
     pub executed_commands: BTreeMap<u128, ExecutedCommand>,
     pub current_command: Option<String>,
     pub current_command_in_type: Option<CmdArgType>,

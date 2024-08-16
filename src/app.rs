@@ -81,15 +81,16 @@ impl<'a> App<'a> {
     pub fn draw(&mut self, f: &mut Frame) {
         let view = self
             .views
-            .get(&self.shared_view_state.current_view)
+            .get_mut(&self.shared_view_state.current_view)
             .unwrap();
         self.shared_view_state.current_view = view.into();
+        let tab_index: usize = view.into();
         match view {
-            ViewType::Explorer(eh) => {
-                eh.draw(f, &mut self.shared_view_state, view.into());
-            }
-            ViewType::WatchList(wl) => {
-                wl.draw(f, &mut self.shared_view_state, view.into());
+            ViewType::Explorer(ref mut eh) => {
+                eh.draw(f, &mut self.shared_view_state, tab_index);
+            },
+            ViewType::WatchList(ref mut wl) => {
+                wl.draw(f, &mut self.shared_view_state, tab_index);
             }
         }
     }
